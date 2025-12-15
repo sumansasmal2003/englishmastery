@@ -25,3 +25,48 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+:root {
+  /* LIGHT MODE COLORS */
+  --sb-track: #fafafa;        /* Matches bg-zinc-50 */
+  --sb-thumb: #d4d4d8;        /* Zinc-300 */
+  --sb-thumb-hover: #a1a1aa;  /* Zinc-400 */
+}
+
+.dark {
+  /* DARK MODE COLORS */
+  --sb-track: #000000;        /* Matches bg-black */
+  --sb-thumb: #27272a;        /* Zinc-800 */
+  --sb-thumb-hover: #3f3f46;  /* Zinc-700 */
+}
+
+/* 2. Webkit Browsers (Chrome, Edge, Safari) */
+::-webkit-scrollbar {
+  width: 10px;               /* Width of vertical scrollbar */
+  height: 10px;              /* Height of horizontal scrollbar */
+}
+
+::-webkit-scrollbar-track {
+  background: var(--sb-track);
+}
+
+::-webkit-scrollbar-thumb {
+  background-color: var(--sb-thumb);
+  border-radius: 9999px;     /* Fully rounded pills */
+
+  /* This border trick creates padding around the scrollbar
+     so it looks like it's floating inside the track */
+  border: 2px solid var(--sb-track);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background-color: var(--sb-thumb-hover);
+}
+
+/* 3. Firefox Support */
+@supports (scrollbar-color: auto) {
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--sb-thumb) var(--sb-track);
+  }
+}

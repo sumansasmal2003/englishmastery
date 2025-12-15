@@ -28,3 +28,25 @@ export async function GET() {
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }
 }
+
+export async function PUT(request) {
+  try {
+    await dbConnect();
+    const body = await request.json();
+    const { _id, ...updateData } = body;
+
+    if (!_id) {
+        return NextResponse.json({ success: false, error: "Chapter ID is required for updates" }, { status: 400 });
+    }
+
+    const chapter = await Chapter.findByIdAndUpdate(_id, updateData, { new: true });
+
+    if (!chapter) {
+        return NextResponse.json({ success: false, error: "Chapter not found" }, { status: 404 });
+    }
+
+    return NextResponse.json({ success: true, message: "Chapter Updated!", data: chapter }, { status: 200 });
+  } catch (error) {
+    return NextResponse.json({ success: false, error: error.message }, { status: 400 });
+  }
+}
