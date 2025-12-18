@@ -1,0 +1,72 @@
+Level 1: Beginner (Foundation)
+Focus: Basics of sentence structure and word forms.
+
+Topic: The Sentence (বাক্য)
+
+Description: মনের ভাব সম্পূর্ণরূপে প্রকাশ করে এমন শব্দসমষ্টিকে Sentence বা বাক্য বলে। এর দুটি অংশ (Subject & Predicate) এবং ৫টি প্রকারভেদ (Assertive, Interrogative, etc.) আছে।
+
+Topic: Number (বচন)
+
+Description: যা দ্বারা কোনো গণনাবাচক ব্যক্তি, বস্তু বা প্রাণীর সংখ্যা (এক বা একাধিক) বোঝায়, তাকে Number বলে। এটি দুই প্রকার: Singular (একবচন) ও Plural (বহুবচন)।
+
+Topic: Gender (লিঙ্গ)
+
+Description: যে চিহ্ন বা লক্ষণ দ্বারা কোনো শব্দ পুরুষ, স্ত্রী, নাকি ক্লীব লিঙ্গ তা বোঝা যায়, তাকে Gender বলে। এটি ৪ প্রকার: Masculine, Feminine, Common, Neuter.
+
+Topic: Articles (A, An, The)
+
+Description: যা দ্বারা কোনো ব্যক্তি বা বস্তুকে নির্দিষ্ট বা অনির্দিষ্টভাবে বোঝানো হয়, তাকে Article বলে। A এবং An হলো Indefinite এবং The হলো Definite Article.
+
+Topic: Person (পুরুষ)
+
+Description: Sentence-এ বা বাক্যে ব্যবহৃত যে সকল Noun বা Pronoun-কে আশ্রয় করে Verb-এর কাজ সম্পন্ন হয়, তাকে Person বলে। (Example: I, You, He/She).
+
+Level 2: Intermediate (Structural Grammar)
+Focus: Forming correct sentences and understanding time/actions.
+
+Topic: Tense (কাল)
+
+Description: ক্রিয়া বা কাজ সম্পন্ন হওয়ার সময়কে Tense বলে। এটি প্রধানত তিন প্রকার: Present, Past এবং Future. ইংরেজি শিখতে Tense-এর গুরুত্ব অপরিসীম।
+
+Topic: Punctuation & Capitalization (বিরাম চিহ্ন)
+
+Description: বাক্যের অর্থ সুস্পষ্ট করার জন্য এবং পড়ার সুবিধার্থে যে সব চিহ্ন ব্যবহৃত হয়, তাকে Punctuation বলে। পাশাপাশি বড় হাতের অক্ষর (Capital Letter) ব্যবহারের নিয়ম।
+
+Topic: Right Form of Verbs (ক্রিয়ার সঠিক রূপ)
+
+Description: Subject, Tense এবং Context অনুযায়ী Verb-এর সঠিক রূপ ব্যবহারের নিয়মাবলী। ভুল এড়াতে এটি জানা খুব জরুরি।
+
+Topic: Wh-Questions
+
+Description: কোনো তথ্য জানার জন্য যে প্রশ্ন করা হয় এবং যা সাধারণত Wh-word (Who, What, Where, When, Why, How) দিয়ে শুরু হয়।
+
+Topic: Case (কারক)
+
+Description: Sentence-এর মধ্যে Noun বা Pronoun-এর সাথে অন্য শব্দের যে সম্পর্ক থাকে, তাকে Case বলে। (Subjective, Objective, Possessive Case).
+
+Level 3: Advanced (Functional & Compositional)
+Focus: Complex sentence manipulation and advanced usage.
+
+Topic: Voice Change (বাচ্য পরিবর্তন)
+
+Description: ক্রিয়া প্রকাশের ভঙ্গিকেই Voice বলে। Subject নিজে কাজ করছে নাকি অন্যের কাজ তার ওপর এসে পড়ছে, তা বোঝাতে Active ও Passive Voice ব্যবহৃত হয়।
+
+Topic: Narration / Speech (উক্তি)
+
+Description: বক্তার কথা অন্যের কাছে বর্ণনা করাকে Narration বলে। এটি দুই প্রকার: Direct (প্রত্যক্ষ) এবং Indirect (পরোক্ষ)।
+
+Topic: Transformation of Sentences (বাক্য রূপান্তর)
+
+Description: অর্থের পরিবর্তন না করে এক প্রকার বাক্যকে অন্য প্রকার বাক্যে রূপান্তর করা। (যেমন: Simple থেকে Complex, Positive থেকে Comparative)।
+
+Topic: Tag Questions
+
+Description: কথোপকথনের সময় শ্রোতার সম্মতি বা সমর্থন আদায়ের জন্য বাক্যের শেষে যে ছোট প্রশ্ন জুড়ে দেওয়া হয়, তাকে Tag Question বলে।
+
+Topic: Completing Sentences
+
+Description: একটি অসম্পূর্ণ বাক্যকে উপযুক্ত শব্দ বা Phrase বসিয়ে অর্থপূর্ণ বাক্যে পরিণত করার নিয়মাবলী (Conditionals, Gerunds, Infinitives ব্যবহার করে)।
+
+Topic: Sentence Connectors / Linkers
+
+Description: যে শব্দগুলো বাক্যের এক অংশের সাথে অন্য অংশের সংযোগ স্থাপন করে বা যুক্তির ধারাবাহিকতা বজায় রাখে। (যেমন: Moreover, Therefore, However)।

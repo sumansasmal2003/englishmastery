@@ -33,9 +33,13 @@ const WritingSchema = new mongoose.Schema({
         details: String
     }],
 
-    senderAddress: String,
-    receiverAddress: String,
-    subject: String
+    senderName: String,      // Name at bottom right
+    senderAddress: String,   // Address at top right
+    date: String,            // Date at top right
+    receiverAddress: String, // Recipient at bottom left
+    subject: String,         // Subject line
+    salutation: String,      // "Dear Sir," etc.
+    closing: String,
   },
 
   modelAnswer: { type: String }
@@ -44,10 +48,11 @@ const WritingSchema = new mongoose.Schema({
 const ActivitySchema = new mongoose.Schema({
   type: {
     type: String,
-    enum: ['MCQ', 'FILL_BLANKS', 'TRUE_FALSE', 'MATCHING', 'QA', 'WORD_BOX', 'REARRANGE', 'UNDERLINE', 'UNDERLINE_CIRCLE', 'CATEGORIZE', 'CAUSE_EFFECT'],
+    enum: ['MCQ', 'FILL_BLANKS', 'TRUE_FALSE', 'MATCHING', 'QA', 'WORD_BOX', 'REARRANGE', 'UNDERLINE', 'UNDERLINE_CIRCLE', 'CATEGORIZE', 'CAUSE_EFFECT', 'CHART_FILL'],
     required: true
   },
   instruction: { type: String, default: "Answer the following questions:" }, // Header text
+  columnHeaders: [String],
   questions: [QuestionSchema]
 });
 

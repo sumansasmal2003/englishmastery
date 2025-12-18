@@ -3,42 +3,16 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  BookOpen, X, ChevronRight, Command, PenTool, ArrowRight, Search, FileText
+  BookOpen, X, ChevronRight, Command, PenTool, ArrowRight, Search, FileText, Sparkles, GraduationCap
 } from "lucide-react";
 
 // --- Animations ---
 const containerVariants = { show: { transition: { staggerChildren: 0.05 } } };
-const itemVariants = { hidden: { opacity: 0, y: 20 }, show: { opacity: 1, y: 0 } };
+const itemVariants = { hidden: { opacity: 0, y: 10 }, show: { opacity: 1, y: 0 } };
 
-// --- SKELETON COMPONENTS ---
-const SkeletonClassCard = () => (
-  <div className="relative flex flex-col justify-between p-8 h-48 w-full bg-white dark:bg-zinc-900/40 border border-zinc-200 dark:border-zinc-800 rounded-2xl overflow-hidden">
-    <div className="absolute inset-0 bg-zinc-100 dark:bg-zinc-800/50 animate-pulse" />
-    <div className="relative z-10 flex justify-between w-full">
-      <div className="h-6 w-16 bg-zinc-200 dark:bg-zinc-700 rounded-md animate-pulse"></div>
-      <div className="h-6 w-20 bg-zinc-200 dark:bg-zinc-700 rounded-full animate-pulse"></div>
-    </div>
-    <div className="relative z-10 space-y-3">
-      <div className="h-10 w-24 bg-zinc-300 dark:bg-zinc-600 rounded-lg animate-pulse"></div>
-      <div className="h-4 w-32 bg-zinc-200 dark:bg-zinc-700 rounded animate-pulse"></div>
-    </div>
-  </div>
-);
-
-const SkeletonGrammarCard = () => (
-  <div className="h-full p-6 bg-white dark:bg-zinc-900/40 border border-zinc-200 dark:border-zinc-800 rounded-xl">
-    <div className="flex justify-between mb-4">
-      <div className="h-10 w-10 bg-zinc-200 dark:bg-zinc-800 rounded-lg animate-pulse"></div>
-      <div className="h-4 w-4 bg-zinc-200 dark:bg-zinc-800 rounded animate-pulse"></div>
-    </div>
-    <div className="space-y-2 mb-4">
-      <div className="h-5 w-3/4 bg-zinc-300 dark:bg-zinc-700 rounded animate-pulse"></div>
-      <div className="h-3 w-1/2 bg-zinc-200 dark:bg-zinc-800 rounded animate-pulse"></div>
-    </div>
-    <div className="pt-4 border-t border-zinc-100 dark:border-zinc-800">
-      <div className="h-3 w-20 bg-zinc-200 dark:bg-zinc-800 rounded animate-pulse"></div>
-    </div>
-  </div>
+// --- SKELETONS ---
+const SkeletonCard = () => (
+  <div className="h-40 w-full bg-zinc-100/50 dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800 rounded-xl animate-pulse" />
 );
 
 export default function Home() {
@@ -69,7 +43,6 @@ export default function Home() {
     fetchData();
   }, []);
 
-  // --- Filtering Logic (Search) ---
   const filteredChapters = chapters.filter(c =>
     c.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
     c.author?.toLowerCase().includes(searchQuery.toLowerCase())
@@ -80,245 +53,257 @@ export default function Home() {
     g.description?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  // --- Filtering Logic (Class Modal) ---
-  // THIS WAS MISSING IN PREVIOUS CODE causing the ReferenceError
   const classChapters = chapters.filter((ch) => ch.classLevel === selectedClass);
-
   const isSearching = searchQuery.length > 0;
   const classes = [5, 6, 7, 8, 9, 10];
 
   return (
-    <div className="min-h-screen bg-zinc-50 dark:bg-black text-zinc-900 dark:text-zinc-100 font-sans selection:bg-indigo-500/30 transition-colors">
+    <div className="min-h-screen bg-white dark:bg-[#050505] text-zinc-900 dark:text-zinc-200 font-sans selection:bg-indigo-500/20 relative">
+
+      {/* --- BACKGROUND GRID --- */}
+      <div className="fixed inset-0 z-0 pointer-events-none">
+        {/* Subtle Grid Pattern */}
+        <div className="absolute inset-0 bg-[linear-gradient(to_right,#8080800a_1px,transparent_1px),linear-gradient(to_bottom,#8080800a_1px,transparent_1px)] bg-[size:24px_24px]"></div>
+        {/* Radial Vignette to soften edges */}
+        <div className="absolute inset-0 bg-[radial-gradient(circle_800px_at_50%_200px,#ffffff00,white)] dark:bg-[radial-gradient(circle_800px_at_50%_200px,#00000000,#050505)]"></div>
+      </div>
 
       {/* --- Header --- */}
-      <header className="fixed top-0 inset-x-0 z-40 border-b border-zinc-200 dark:border-white/5 bg-white/80 dark:bg-black/80 backdrop-blur-xl">
-        <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 bg-gradient-to-tr from-indigo-600 to-indigo-400 rounded-lg flex items-center justify-center shadow-lg">
-              <BookOpen size={18} className="text-white" />
+      <header className="fixed top-0 inset-x-0 z-50 border-b border-zinc-200/50 dark:border-white/5 bg-white/60 dark:bg-black/60 backdrop-blur-md supports-[backdrop-filter]:bg-white/60">
+        <div className="max-w-6xl mx-auto px-6 h-14 flex items-center justify-between">
+          <div className="flex items-center gap-2.5 group cursor-default">
+            <div className="w-7 h-7 bg-zinc-900 dark:bg-white rounded-lg flex items-center justify-center shadow-sm group-hover:scale-105 transition-transform">
+              <BookOpen size={14} className="text-white dark:text-black" />
             </div>
-            <span className="font-semibold text-sm tracking-wide hidden sm:inline-block">EnglishMastery</span>
+            <span className="font-bold text-sm tracking-tight text-zinc-800 dark:text-zinc-100">EnglishMastery</span>
           </div>
-          <Link href="/add-chapter" className="group flex items-center gap-2 px-4 py-2 text-xs font-medium bg-zinc-100 hover:bg-zinc-200 border border-zinc-200 dark:bg-zinc-900/50 dark:hover:bg-zinc-800 dark:border-zinc-800 rounded-full transition-all">
-            <Command size={13} className="text-zinc-400 group-hover:text-indigo-500 transition-colors" />
-            <span>Admin Panel</span>
+          <Link href="/add-chapter" className="flex items-center gap-2 px-3 py-1.5 text-[11px] font-medium bg-zinc-100 hover:bg-zinc-200 border border-zinc-200 dark:bg-zinc-900 dark:hover:bg-zinc-800 dark:border-zinc-800 rounded-md transition-colors text-zinc-600 dark:text-zinc-400">
+            <Command size={11} />
+            <span>Admin</span>
           </Link>
         </div>
       </header>
 
-      <main className="max-w-6xl mx-auto px-6 pt-32 pb-20 space-y-12">
+      <main className="relative z-10 max-w-5xl mx-auto px-6 pt-32 pb-24">
 
-        {/* --- Search Bar --- */}
-        <div className="relative max-w-2xl mx-auto mb-16">
+        {/* --- Hero / Search --- */}
+        <div className="max-w-2xl mx-auto text-center mb-16 space-y-6">
+          <h1 className="text-4xl sm:text-5xl font-extrabold tracking-tight text-zinc-900 dark:text-white">
+            Master the <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-500 to-purple-500">Language.</span>
+          </h1>
+          <p className="text-zinc-500 dark:text-zinc-400 text-sm sm:text-base max-w-md mx-auto">
+            Comprehensive resources for literature and grammar excellence. Select your grade or search below.
+          </p>
+
+          <div className="relative group max-w-lg mx-auto">
             <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none">
-                <Search className="h-5 w-5 text-zinc-400" />
+              <Search className="h-4 w-4 text-zinc-400 group-focus-within:text-indigo-500 transition-colors" />
             </div>
             <input
-                type="text"
-                placeholder="Search for chapters, authors, or grammar topics..."
-                className="w-full pl-12 pr-4 py-4 bg-white dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800 rounded-2xl shadow-sm focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 outline-none transition-all text-base"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
+              type="text"
+              placeholder="Search chapters or grammar..."
+              className="w-full pl-11 pr-10 py-3 bg-white dark:bg-zinc-900/80 border border-zinc-200 dark:border-zinc-800 rounded-xl shadow-sm focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition-all text-sm placeholder:text-zinc-500"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
             />
             {isSearching && (
-                <button
-                    onClick={() => setSearchQuery("")}
-                    className="absolute inset-y-0 right-4 flex items-center text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200"
-                >
-                    <X size={16} />
-                </button>
+              <button onClick={() => setSearchQuery("")} className="absolute inset-y-0 right-3 flex items-center text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200">
+                <X size={14} />
+              </button>
             )}
+          </div>
         </div>
 
-        {/* --- LOADING SKELETON STATE --- */}
+        {/* --- CONTENT AREA --- */}
         {loading ? (
-            <div className="space-y-24 animate-in fade-in duration-500">
-                {/* Academic Skeleton */}
-                <section>
-                    <div className="mb-8 flex items-end gap-4 border-b border-zinc-200 dark:border-zinc-800 pb-4">
-                        <div className="h-8 w-64 bg-zinc-200 dark:bg-zinc-800 rounded-lg animate-pulse"></div>
-                    </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-                        {[1, 2, 3, 4, 5, 6].map((i) => <SkeletonClassCard key={i} />)}
-                    </div>
-                </section>
-
-                {/* Grammar Skeleton */}
-                <section>
-                    <div className="mb-8 flex items-end gap-4 border-b border-zinc-200 dark:border-zinc-800 pb-4">
-                        <div className="h-8 w-64 bg-zinc-200 dark:bg-zinc-800 rounded-lg animate-pulse"></div>
-                    </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                        {[1, 2, 3, 4].map((i) => <SkeletonGrammarCard key={i} />)}
-                    </div>
-                </section>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                 {[...Array(6)].map((_, i) => <SkeletonCard key={i} />)}
             </div>
         ) : (
-            /* --- REAL CONTENT --- */
             <>
                 {isSearching ? (
-                    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-12">
-                        {/* Search Results */}
-                        <section>
-                            <h2 className="text-sm font-bold text-zinc-400 uppercase tracking-widest mb-6 flex items-center gap-2">
-                                <FileText size={16}/> Found Chapters ({filteredChapters.length})
-                            </h2>
-                            {filteredChapters.length > 0 ? (
-                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                                    {filteredChapters.map(ch => (
-                                        <Link key={ch._id} href={`/chapter/${ch._id}`} className="block group">
-                                            <div className="p-5 bg-white dark:bg-zinc-900/40 border border-zinc-200 dark:border-zinc-800 rounded-xl hover:border-indigo-500/30 transition-all h-full">
-                                                <div className="flex items-center justify-between mb-3">
-                                                    <span className="text-[10px] font-bold bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 px-2 py-1 rounded">Class {ch.classLevel}</span>
-                                                    <span className="text-xs text-zinc-400 font-mono">Ch {ch.chapterNumber}</span>
-                                                </div>
-                                                <h3 className="font-bold text-lg mb-1 group-hover:text-indigo-500 transition-colors">{ch.title}</h3>
-                                                <p className="text-xs text-zinc-500">{ch.author || "Unknown Author"}</p>
+                   <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-12">
+                       {/* Search Results */}
+                        <div className="space-y-6">
+                           <div className="flex items-center gap-2 text-xs font-bold text-zinc-400 uppercase tracking-widest">
+                               <FileText size={12}/> Literature Results
+                           </div>
+                           {filteredChapters.length > 0 ? (
+                               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                   {filteredChapters.map(ch => (
+                                       <Link key={ch._id} href={`/chapter/${ch._id}`} className="group relative p-5 bg-white dark:bg-zinc-900/40 border border-zinc-200 dark:border-zinc-800 rounded-xl hover:border-indigo-500/50 transition-all duration-300">
+                                            <div className="flex justify-between items-start mb-2">
+                                                <span className="text-[10px] font-mono text-zinc-500">Class {ch.classLevel}</span>
+                                                <ArrowRight size={14} className="text-zinc-300 -translate-x-2 opacity-0 group-hover:opacity-100 group-hover:translate-x-0 transition-all"/>
                                             </div>
-                                        </Link>
-                                    ))}
-                                </div>
-                            ) : (
-                                <p className="text-zinc-500 text-sm italic">No chapters matching "{searchQuery}"</p>
-                            )}
-                        </section>
+                                            <h3 className="font-semibold text-zinc-900 dark:text-zinc-100">{ch.title}</h3>
+                                            <p className="text-xs text-zinc-500 mt-1">{ch.author || "Unknown"}</p>
+                                       </Link>
+                                   ))}
+                               </div>
+                           ) : <div className="text-zinc-500 text-sm italic">No chapters found.</div>}
+                        </div>
 
-                        <section>
-                            <h2 className="text-sm font-bold text-zinc-400 uppercase tracking-widest mb-6 flex items-center gap-2">
-                                <PenTool size={16}/> Found Grammar Topics ({filteredGrammar.length})
-                            </h2>
-                            {filteredGrammar.length > 0 ? (
-                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                                    {filteredGrammar.map(gr => (
-                                        <Link key={gr._id} href={`/grammar/${gr._id}`} className="block group">
-                                            <div className="p-5 bg-white dark:bg-zinc-900/40 border border-zinc-200 dark:border-zinc-800 rounded-xl hover:border-emerald-500/30 transition-all h-full">
-                                                <div className="flex items-center justify-between mb-3">
-                                                    <span className="text-[10px] font-bold bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 px-2 py-1 rounded">Grammar</span>
-                                                </div>
-                                                <h3 className="font-bold text-lg mb-1 group-hover:text-emerald-500 transition-colors">{gr.topic}</h3>
-                                                <p className="text-xs text-zinc-500 line-clamp-1">{gr.description}</p>
+                        <div className="space-y-6">
+                           <div className="flex items-center gap-2 text-xs font-bold text-zinc-400 uppercase tracking-widest">
+                               <PenTool size={12}/> Grammar Results
+                           </div>
+                           {filteredGrammar.length > 0 ? (
+                               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                                   {filteredGrammar.map(gr => (
+                                       <Link key={gr._id} href={`/grammar/${gr._id}`} className="group p-5 bg-white dark:bg-zinc-900/40 border border-zinc-200 dark:border-zinc-800 rounded-xl hover:border-emerald-500/50 transition-all duration-300">
+                                            <div className="flex items-center gap-2 mb-3">
+                                                <div className="w-1.5 h-1.5 rounded-full bg-emerald-500"/>
+                                                <span className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 uppercase">Grammar</span>
                                             </div>
-                                        </Link>
-                                    ))}
-                                </div>
-                            ) : (
-                                <p className="text-zinc-500 text-sm italic">No grammar topics matching "{searchQuery}"</p>
-                            )}
-                        </section>
-                    </motion.div>
+                                            <h3 className="font-bold text-zinc-900 dark:text-zinc-100">{gr.topic}</h3>
+                                            <p className="text-xs text-zinc-500 mt-1 line-clamp-1">{gr.description}</p>
+                                       </Link>
+                                   ))}
+                               </div>
+                           ) : <div className="text-zinc-500 text-sm italic">No grammar topics found.</div>}
+                        </div>
+                   </motion.div>
                 ) : (
-                    /* Default Dashboard View */
-                    <>
+                    /* --- DEFAULT DASHBOARD --- */
+                    <div className="space-y-20">
+
+                        {/* 1. ACADEMIC SECTION */}
                         <section>
-                            <div className="mb-8 flex items-end gap-4 border-b border-zinc-200 dark:border-zinc-800 pb-4">
-                                <h2 className="text-3xl font-bold text-zinc-900 dark:text-white tracking-tight">Academic Curriculum</h2>
-                                <p className="text-sm text-zinc-500 pb-1 hidden sm:block">Select your grade level</p>
+                            <div className="flex items-center gap-3 mb-6">
+                                <GraduationCap className="text-indigo-500" size={20} />
+                                <h2 className="text-xl font-bold text-zinc-900 dark:text-white">Academic Curriculum</h2>
                             </div>
 
                             <motion.div variants={containerVariants} initial="hidden" animate="show" className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-                            {classes.map((cls) => {
-                                const count = chapters.filter(c => c.classLevel === cls).length;
-                                return (
-                                <motion.button
-                                    key={cls}
-                                    variants={itemVariants}
-                                    onClick={() => setSelectedClass(cls)}
-                                    className="group relative flex flex-col justify-between p-8 h-48 w-full bg-white dark:bg-zinc-900/20 border border-zinc-200 dark:border-white/5 hover:border-indigo-500/30 rounded-2xl text-left transition-all duration-300 overflow-hidden shadow-sm dark:shadow-none hover:shadow-md"
-                                >
-                                    <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/0 to-indigo-500/0 group-hover:to-indigo-500/5 transition-all duration-500" />
-                                    <div className="flex items-start justify-between w-full relative z-10">
-                                        <span className="px-2 py-1 rounded-md bg-zinc-100 dark:bg-zinc-800/50 text-[10px] font-mono text-zinc-500 uppercase tracking-widest">Grade</span>
-                                        {count > 0 ? (
-                                            <div className="flex items-center gap-1.5 px-2 py-1 rounded-full bg-emerald-100 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400">
-                                                <span className="h-1.5 w-1.5 rounded-full bg-current animate-pulse"></span>
-                                                <span className="text-[10px] font-medium">{count} Units</span>
+                                {classes.map((cls) => {
+                                    const count = chapters.filter(c => c.classLevel === cls).length;
+                                    return (
+                                        <motion.button
+                                            key={cls}
+                                            variants={itemVariants}
+                                            onClick={() => setSelectedClass(cls)}
+                                            className="group relative flex flex-col justify-between h-40 p-6 w-full bg-white dark:bg-zinc-900/30 border border-zinc-200 dark:border-zinc-800/80 hover:border-indigo-500/30 rounded-2xl text-left transition-all duration-300 overflow-hidden"
+                                        >
+                                            <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-indigo-500/10 to-transparent rounded-bl-[100px] -mr-8 -mt-8 transition-transform group-hover:scale-110" />
+
+                                            <div className="relative z-10 flex justify-between w-full">
+                                                <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Grade</span>
+                                                <div className="px-2 py-1 rounded-md bg-zinc-50 dark:bg-zinc-800 border border-zinc-100 dark:border-zinc-700/50 text-[10px] text-zinc-500 font-mono">
+                                                    {count} Units
+                                                </div>
                                             </div>
-                                        ) : <span className="text-[10px] text-zinc-400">Empty</span>}
-                                    </div>
-                                    <div className="relative z-10">
-                                        <h2 className="text-5xl font-bold text-zinc-900 dark:text-white tracking-tighter group-hover:translate-x-1 transition-transform">{cls}</h2>
-                                        <p className="text-sm text-zinc-500 mt-2 font-medium flex items-center gap-1 group-hover:text-indigo-500 transition-colors">
-                                            View Materials <ChevronRight size={14} />
-                                        </p>
-                                    </div>
-                                </motion.button>
-                                );
-                            })}
+
+                                            <div className="relative z-10">
+                                                <div className="flex items-baseline gap-1">
+                                                    <span className="text-4xl font-bold text-zinc-900 dark:text-white tracking-tighter group-hover:text-indigo-500 transition-colors">{cls}</span>
+                                                    <span className="text-sm text-zinc-400 font-medium">th</span>
+                                                </div>
+                                                <div className="flex items-center gap-1 mt-1 text-xs text-zinc-500 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">
+                                                    View Syllabus <ChevronRight size={12} />
+                                                </div>
+                                            </div>
+                                        </motion.button>
+                                    );
+                                })}
                             </motion.div>
                         </section>
 
+                        {/* 2. GRAMMAR SECTION */}
                         <section>
-                            <div className="mb-8 flex items-end gap-4 border-b border-zinc-200 dark:border-zinc-800 pb-4">
-                                <h2 className="text-3xl font-bold text-zinc-900 dark:text-white tracking-tight">Grammar Reference</h2>
-                                <p className="text-sm text-zinc-500 pb-1 hidden sm:block">Master the rules</p>
+                             <div className="flex items-center gap-3 mb-6">
+                                <Sparkles className="text-emerald-500" size={20} />
+                                <h2 className="text-xl font-bold text-zinc-900 dark:text-white">Grammar Reference</h2>
                             </div>
 
                             {grammar.length > 0 ? (
                                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                                     {grammar.map((topic) => (
                                         <Link key={topic._id} href={`/grammar/${topic._id}`} className="group block h-full">
-                                            <motion.div
-                                                whileHover={{ y: -4 }}
-                                                className="h-full p-6 bg-white dark:bg-zinc-900/20 border border-zinc-200 dark:border-zinc-800 rounded-xl hover:border-emerald-500/30 transition-all shadow-sm dark:shadow-none hover:shadow-lg"
-                                            >
-                                                <div className="flex items-start justify-between mb-4">
-                                                    <div className="p-3 bg-emerald-50 dark:bg-emerald-500/10 rounded-lg text-emerald-600 dark:text-emerald-400">
-                                                        <PenTool size={20} />
+                                            <motion.div whileHover={{ y: -2 }} className="h-full p-5 bg-white dark:bg-zinc-900/30 border border-zinc-200 dark:border-zinc-800/80 rounded-xl hover:border-emerald-500/30 transition-all">
+                                                <div className="flex items-start justify-between mb-8">
+                                                    <div className="w-8 h-8 rounded-full bg-emerald-50 dark:bg-emerald-500/10 flex items-center justify-center text-emerald-600 dark:text-emerald-400">
+                                                        <PenTool size={14} />
                                                     </div>
-                                                    <ArrowRight size={16} className="text-zinc-300 group-hover:text-emerald-500 -translate-x-2 group-hover:translate-x-0 opacity-0 group-hover:opacity-100 transition-all" />
+                                                    <ArrowRight size={14} className="text-zinc-300 -translate-x-2 opacity-0 group-hover:opacity-100 group-hover:translate-x-0 transition-all" />
                                                 </div>
-                                                <h3 className="text-lg font-bold text-zinc-900 dark:text-white mb-2">{topic.topic}</h3>
-                                                <p className="text-xs text-zinc-500 line-clamp-2">{topic.description || "Learn the fundamental rules and usage."}</p>
-                                                <div className="mt-4 pt-4 border-t border-zinc-100 dark:border-zinc-800/50 flex items-center gap-2 text-[10px] font-mono text-zinc-400 uppercase tracking-wider">
-                                                    <span>{topic.sections.length} Rules</span>
+                                                <div>
+                                                    <h3 className="text-sm font-bold text-zinc-900 dark:text-zinc-100 mb-1">{topic.topic}</h3>
+                                                    <p className="text-[11px] text-zinc-500 line-clamp-2 leading-relaxed">{topic.description || "Essential rules and examples."}</p>
                                                 </div>
                                             </motion.div>
                                         </Link>
                                     ))}
                                 </div>
                             ) : (
-                                <div className="text-center py-12 border border-dashed border-zinc-200 dark:border-zinc-800 rounded-xl">
-                                    <p className="text-zinc-500">No grammar topics added yet.</p>
+                                <div className="p-8 border border-dashed border-zinc-200 dark:border-zinc-800 rounded-xl text-center text-xs text-zinc-500">
+                                    No grammar topics available.
                                 </div>
                             )}
                         </section>
-                    </>
+                    </div>
                 )}
             </>
         )}
-
       </main>
 
-      {/* --- Class Modal --- */}
+      {/* --- Stylish Class Modal --- */}
       <AnimatePresence>
         {selectedClass && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6">
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-white/60 dark:bg-black/80 backdrop-blur-sm" onClick={() => setSelectedClass(null)} />
-            <motion.div initial={{ opacity: 0, scale: 0.95, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 20 }} className="relative w-full max-w-2xl bg-white dark:bg-[#0a0a0a] border border-zinc-200 dark:border-zinc-800 rounded-2xl shadow-2xl flex flex-col max-h-[85vh] overflow-hidden">
-              <div className="flex items-center justify-between px-6 py-5 border-b border-zinc-100 dark:border-zinc-900">
-                <div className="flex items-center gap-3">
-                   <div className="h-10 w-10 bg-zinc-100 dark:bg-zinc-900 rounded-full flex items-center justify-center border border-zinc-200 dark:border-zinc-800 text-zinc-500 font-bold text-lg">{selectedClass}</div>
-                   <div><h3 className="text-lg font-bold text-zinc-900 dark:text-white">Class {selectedClass}</h3><p className="text-xs text-zinc-500">Select a chapter</p></div>
+          <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+            <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="absolute inset-0 bg-white/80 dark:bg-black/80 backdrop-blur-sm"
+                onClick={() => setSelectedClass(null)}
+            />
+            <motion.div
+                initial={{ opacity: 0, scale: 0.9, y: 10 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.9, y: 10 }}
+                transition={{ type: "spring", stiffness: 350, damping: 25 }}
+                className="relative w-full max-w-2xl bg-white dark:bg-[#09090b] border border-zinc-200 dark:border-zinc-800 rounded-2xl shadow-2xl flex flex-col max-h-[80vh] overflow-hidden"
+            >
+              <div className="flex items-center justify-between px-6 py-5 border-b border-zinc-100 dark:border-zinc-800">
+                <div className="flex items-center gap-4">
+                   <div className="w-12 h-12 bg-zinc-100 dark:bg-zinc-900 rounded-xl flex items-center justify-center border border-zinc-200 dark:border-zinc-800">
+                        <span className="text-xl font-bold text-zinc-900 dark:text-white tracking-tighter">{selectedClass}</span>
+                   </div>
+                   <div>
+                       <h3 className="text-lg font-bold text-zinc-900 dark:text-white leading-tight">Class {selectedClass} Curriculum</h3>
+                       <p className="text-xs text-zinc-500 mt-0.5">Select a unit to start learning</p>
+                   </div>
                 </div>
-                <button onClick={() => setSelectedClass(null)} className="p-2 text-zinc-400 hover:text-zinc-900 dark:hover:text-white"><X size={20} /></button>
+                <button onClick={() => setSelectedClass(null)} className="p-2 bg-zinc-100 dark:bg-zinc-900 rounded-full text-zinc-500 hover:text-zinc-900 dark:hover:text-white transition-colors">
+                    <X size={18} />
+                </button>
               </div>
-              <div className="flex-1 overflow-y-auto p-4 custom-scrollbar">
+
+              <div className="flex-1 overflow-y-auto p-2 bg-zinc-50/50 dark:bg-black/20 custom-scrollbar">
                 {classChapters.length > 0 ? (
-                  <div className="space-y-2">
-                    {classChapters.map((chapter, i) => (
-                      <Link key={chapter._id} href={`/chapter/${chapter._id}`} className="group flex items-center justify-between p-4 rounded-xl bg-zinc-50 hover:bg-white dark:bg-zinc-900/30 dark:hover:bg-zinc-900 border border-transparent hover:border-zinc-200 dark:hover:border-zinc-800 transition-all">
-                          <div className="flex items-center gap-5">
-                            <span className="font-mono text-sm text-zinc-400 group-hover:text-indigo-500">#{chapter.chapterNumber}</span>
+                  <div className="space-y-1 p-2">
+                    {classChapters.map((chapter) => (
+                      <Link key={chapter._id} href={`/chapter/${chapter._id}`} className="group flex items-center justify-between p-4 rounded-xl bg-white dark:bg-zinc-900 border border-zinc-100 dark:border-zinc-800/50 hover:border-indigo-500/30 hover:shadow-sm transition-all">
+                          <div className="flex items-center gap-4">
+                            <span className="font-mono text-xs text-zinc-400 bg-zinc-50 dark:bg-zinc-950 px-2 py-1 rounded">Ch.{chapter.chapterNumber}</span>
                             <div>
-                              <h4 className="text-base font-medium text-zinc-700 dark:text-zinc-200 group-hover:text-black dark:group-hover:text-white">{chapter.title}</h4>
-                              {chapter.author && <span className="text-xs text-zinc-500">{chapter.author}</span>}
+                              <h4 className="text-sm font-semibold text-zinc-800 dark:text-zinc-200 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">{chapter.title}</h4>
+                              {chapter.author && <span className="text-[10px] text-zinc-400">{chapter.author}</span>}
                             </div>
                           </div>
-                          <ChevronRight size={16} className="text-zinc-400 group-hover:text-indigo-500"/>
+                          <div className="w-8 h-8 rounded-full flex items-center justify-center bg-zinc-50 dark:bg-zinc-800 group-hover:bg-indigo-50 dark:group-hover:bg-indigo-500/10 text-zinc-400 group-hover:text-indigo-500 transition-colors">
+                             <ChevronRight size={14} />
+                          </div>
                       </Link>
                     ))}
                   </div>
-                ) : <div className="text-center py-20 text-zinc-500">No chapters found for Class {selectedClass}.</div>}
+                ) : (
+                    <div className="flex flex-col items-center justify-center h-48 text-zinc-400">
+                        <BookOpen size={32} className="mb-3 opacity-20"/>
+                        <p className="text-sm">No chapters uploaded for Class {selectedClass} yet.</p>
+                    </div>
+                )}
               </div>
             </motion.div>
           </div>

@@ -1,0 +1,230 @@
+import { X, Trash2, Network, Plus, ArrowDownLeft, ArrowDownRight, ArrowUpRight, MapPin, Calendar, User, PenLine } from "lucide-react";
+import { InputLabel, ThemedInput, ThemedTextarea } from "./SharedUI";
+
+export default function WritingBuilder({ unitIdx, wIdx, writing, onChange, onRemove }) {
+
+    // --- Handlers ---
+    const updateField = (field, val) => {
+        onChange({ ...writing, [field]: val });
+    };
+
+    const updateData = (key, val) => {
+        // Handle hints as array, others as string
+        const newData = {
+            ...writing.data,
+            [key]: key === 'hints' ? val.split(',').map(s => s.trim()) : val
+        };
+        onChange({ ...writing, data: newData });
+    };
+
+    // --- Family Tree Handlers ---
+    const addFamilyMember = (parentId) => {
+        const newMembers = [...(writing.data.familyMembers || [])];
+        newMembers.push({ id: `mem-${Date.now()}`, parentId, partnerId: null, name: "", relation: "", details: "" });
+        onChange({ ...writing, data: { ...writing.data, familyMembers: newMembers } });
+    };
+
+    const addSpouse = (partnerId) => {
+        const newMembers = [...(writing.data.familyMembers || [])];
+        const newId = `mem-${Date.now()}`;
+
+        // Find original and link
+        const original = newMembers.find(m => m.id === partnerId);
+        if(original) original.partnerId = newId;
+
+        newMembers.push({ id: newId, parentId: 'spouse', partnerId, name: "", relation: "Spouse", details: "" });
+        onChange({ ...writing, data: { ...writing.data, familyMembers: newMembers } });
+    };
+
+    const updateMember = (id, field, val) => {
+        const newMembers = writing.data.familyMembers.map(m => m.id === id ? { ...m, [field]: val } : m);
+        onChange({ ...writing, data: { ...writing.data, familyMembers: newMembers } });
+    };
+
+    const removeMember = (id) => {
+        // Recursive delete logic
+        let members = [...writing.data.familyMembers];
+        // ... (Include logic to delete children recursively) ...
+        const idsToDelete = [id];
+        let found = true;
+        while(found) {
+            found = false;
+            members.forEach(m => {
+                if(idsToDelete.includes(m.parentId) && !idsToDelete.includes(m.id)) {
+                    idsToDelete.push(m.id);
+                    found = true;
+                }
+            });
+        }
+        members = members.filter(m => !idsToDelete.includes(m.id));
+        onChange({ ...writing, data: { ...writing.data, familyMembers: members } });
+    };
+
+    // --- Recursive Tree Render (Admin) ---
+    const renderTree = (parentId) => {
+        const children = (writing.data.familyMembers || []).filter(m => m.parentId === parentId && m.parentId !== 'spouse');
+        if (children.length === 0 && parentId === null) return <div className="text-zinc-400 text-xs">Add a root member.</div>;
+
+        return (
+            <div className="flex gap-8 justify-center pt-4">
+                {children.map(member => {
+                    const spouse = writing.data.familyMembers.find(m => m.id === member.partnerId);
+                    return (
+                        <div key={member.id} className="flex flex-col items-center">
+                            <div className="flex gap-2 items-center mb-6 relative">
+                                {/* Node Card */}
+                                <div className="bg-white dark:bg-zinc-800 border border-zinc-200 p-3 rounded-xl shadow-sm w-40 relative group/node">
+                                    <button type="button" onClick={() => removeMember(member.id)} className="absolute -top-2 -right-2 bg-red-100 text-red-500 p-1 rounded-full opacity-0 group-hover/node:opacity-100"><X size={10}/></button>
+                                    <div className="space-y-2">
+                                        <input className="w-full text-xs font-bold bg-transparent outline-none border-b" placeholder="Name" value={member.name} onChange={(e) => updateMember(member.id, 'name', e.target.value)} />
+                                        <input className="w-full text-[10px]" placeholder="Relation" value={member.relation} onChange={(e) => updateMember(member.id, 'relation', e.target.value)} />
+                                    </div>
+                                    <div className="flex gap-1 mt-2">
+                                        <button type="button" onClick={() => addFamilyMember(member.id)} className="flex-1 py-1 bg-indigo-50 text-indigo-600 text-[9px] font-bold rounded">+ Child</button>
+                                        {!spouse && <button type="button" onClick={() => addSpouse(member.id)} className="flex-1 py-1 bg-pink-50 text-pink-600 text-[9px] font-bold rounded">+ Partner</button>}
+                                    </div>
+                                </div>
+                                {/* Spouse Card */}
+                                {spouse && (
+                                    <div className="bg-pink-50/50 border border-pink-200 p-3 rounded-xl shadow-sm w-40 relative">
+                                        <button type="button" onClick={() => removeMember(spouse.id)} className="absolute -top-2 -right-2 bg-red-100 text-red-500 p-1 rounded-full"><X size={10}/></button>
+                                        <input className="w-full text-xs font-bold bg-transparent outline-none border-b" placeholder="Name" value={spouse.name} onChange={(e) => updateMember(spouse.id, 'name', e.target.value)} />
+                                    </div>
+                                )}
+                            </div>
+                            {/* Recursion */}
+                            {(writing.data.familyMembers || []).some(m => m.parentId === member.id) && (
+                                <div className="relative w-full border-t border-zinc-300">
+                                    {renderTree(member.id)}
+                                </div>
+                            )}
+                        </div>
+                    );
+                })}
+            </div>
+        );
+    };
+
+    return (
+        <div className="bg-rose-50/30 dark:bg-rose-900/10 border border-rose-100 dark:border-rose-900/30 rounded-xl p-5 relative">
+             <div className="flex justify-between items-start mb-4">
+                <div className="flex-1 mr-4">
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded border bg-rose-100 text-rose-700 mb-2 inline-block">{writing.type.replace(/_/g, ' ')}</span>
+                    <input className="w-full bg-transparent border-b border-dashed border-rose-200 text-sm font-medium py-1" value={writing.question} onChange={(e) => updateField('question', e.target.value)} placeholder="Prompt..." />
+                </div>
+                <button type="button" onClick={onRemove} className="text-rose-400 hover:text-rose-600 p-1 rounded"><Trash2 size={14} /></button>
+            </div>
+
+            {writing.type === 'INFORMAL_LETTER' && (
+                <div className="mb-6 space-y-4 border-l-2 border-rose-200 pl-4">
+
+                    {/* Top Right Section */}
+                    <div className="bg-white dark:bg-zinc-900/50 p-4 rounded-lg border border-rose-100 dark:border-rose-900/20">
+                        <h4 className="text-[10px] font-bold text-rose-400 uppercase tracking-widest mb-3 flex items-center gap-1">
+                            <ArrowUpRight size={12}/> Top Right Corner (Writer)
+                        </h4>
+                        <div className="grid md:grid-cols-2 gap-4">
+                            <div>
+                                <InputLabel icon={MapPin}>Writer's Address</InputLabel>
+                                <ThemedTextarea
+                                    value={writing.data?.senderAddress || ""}
+                                    onChange={(e) => updateData('senderAddress', e.target.value)}
+                                    placeholder="e.g. 123 Station Road, Dhaka"
+                                    className="min-h-[60px]"
+                                />
+                            </div>
+                            <div>
+                                <InputLabel icon={Calendar}>Date</InputLabel>
+                                <ThemedInput
+                                    value={writing.data?.date || ""}
+                                    onChange={(e) => updateData('date', e.target.value)}
+                                    placeholder="e.g. 25th March, 2024"
+                                />
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Middle Section */}
+                    <div className="grid md:grid-cols-2 gap-4">
+                        <div>
+                            <InputLabel icon={User}>Salutation / Greetings</InputLabel>
+                            <ThemedInput
+                                value={writing.data?.salutation || ""}
+                                onChange={(e) => updateData('salutation', e.target.value)}
+                                placeholder="e.g. Dear Sir,"
+                            />
+                        </div>
+                        <div>
+                            <InputLabel icon={PenLine}>Subject Line</InputLabel>
+                            <ThemedInput
+                                value={writing.data?.subject || ""}
+                                onChange={(e) => updateData('subject', e.target.value)}
+                                placeholder="e.g. Request for road repairs"
+                            />
+                        </div>
+                    </div>
+
+                    {/* Bottom Section */}
+                    <div className="grid md:grid-cols-2 gap-4">
+                        <div className="bg-white dark:bg-zinc-900/50 p-4 rounded-lg border border-rose-100 dark:border-rose-900/20">
+                            <h4 className="text-[10px] font-bold text-rose-400 uppercase tracking-widest mb-3 flex items-center gap-1">
+                                <ArrowDownLeft size={12}/> Bottom Left (Recipient)
+                            </h4>
+                            <InputLabel icon={MapPin}>Recipient's Address</InputLabel>
+                            <ThemedTextarea
+                                value={writing.data?.receiverAddress || ""}
+                                onChange={(e) => updateData('receiverAddress', e.target.value)}
+                                placeholder="e.g. The Editor, Daily Star..."
+                                className="min-h-[80px]"
+                            />
+                        </div>
+
+                        <div className="bg-white dark:bg-zinc-900/50 p-4 rounded-lg border border-rose-100 dark:border-rose-900/20">
+                            <h4 className="text-[10px] font-bold text-rose-400 uppercase tracking-widest mb-3 flex items-center gap-1">
+                                <ArrowDownRight size={12}/> Bottom Right (Closing)
+                            </h4>
+                            <div className="space-y-3">
+                                <div>
+                                    <InputLabel>Leave Taking</InputLabel>
+                                    <ThemedInput
+                                        value={writing.data?.closing || ""}
+                                        onChange={(e) => updateData('closing', e.target.value)}
+                                        placeholder="e.g. Yours faithfully,"
+                                    />
+                                </div>
+                                <div>
+                                    <InputLabel>Sender's Name</InputLabel>
+                                    <ThemedInput
+                                        value={writing.data?.senderName || ""}
+                                        onChange={(e) => updateData('senderName', e.target.value)}
+                                        placeholder="e.g. Rahim Ahmed"
+                                    />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            )}
+
+            {writing.type === 'FAMILY_CHART' ? (
+                <div className="mb-6 bg-zinc-50 p-6 rounded-xl border border-zinc-200 overflow-x-auto">
+                    <div className="flex justify-between items-center mb-4"><span className="text-xs font-bold uppercase flex items-center gap-2"><Network size={12}/> Tree</span></div>
+                    <div className="min-w-max pb-4">{renderTree(null)}</div>
+                    {(!writing.data.familyMembers || writing.data.familyMembers.length === 0) && <button type="button" onClick={() => addFamilyMember(null)} className="text-xs text-indigo-500">+ Add Root</button>}
+                </div>
+            ) : null}
+
+            {writing.type !== 'FAMILY_CHART' && writing.type !== 'INFORMAL_LETTER' && (
+                <div className="grid md:grid-cols-2 gap-4 mb-4">
+                     <div className="col-span-2">
+                        <InputLabel>Hints</InputLabel>
+                        <ThemedTextarea value={(writing.data?.hints || []).join(', ')} onChange={(e) => updateData('hints', e.target.value)} placeholder="Hints..." />
+                     </div>
+                </div>
+            )}
+
+            <div><InputLabel>Model Answer</InputLabel><ThemedTextarea value={writing.modelAnswer} onChange={(e) => updateField('modelAnswer', e.target.value)} placeholder="Answer..." className="min-h-[100px]"/></div>
+        </div>
+    );
+}
