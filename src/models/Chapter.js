@@ -33,6 +33,9 @@ const WritingSchema = new mongoose.Schema({
         details: String
     }],
 
+    characters: [String], // e.g. ["Doctor", "Patient"]
+    setting: String,
+
     senderName: String,      // Name at bottom right
     senderAddress: String,   // Address at top right
     date: String,            // Date at top right

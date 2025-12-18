@@ -5,7 +5,9 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   ArrowLeft, Loader2, Layers, CheckCircle2, Download,
   Eye, EyeOff, ListChecks, SplitSquareHorizontal, HelpCircle, FileText, ChevronDown, ArrowDownUp, Type, BoxSelect, Highlighter, Table2, Feather, Network, Heart, ArrowRightLeft,
-  Lightbulb, Grid3X3
+  Lightbulb, Grid3X3,
+  Users,
+  MapPin
 } from "lucide-react";
 import ChapterChatbot from "@/components/ChapterChatbot";
 
@@ -60,6 +62,31 @@ export default function ChapterDetail() {
 
   // --- Helpers for Text Parsing ---
   const cleanText = (text) => text?.replace(/[{}[\]]/g, "").replace(/\|(\d+)/g, "") || "";
+
+  const renderDialogueScript = (text) => {
+    if (!text) return null;
+    return text.split('\n').map((line, i) => {
+        // Regex to find "Name: Message" pattern
+        const match = line.match(/^(.+?):\s*(.*)/);
+        if (match) {
+            return (
+                <div key={i} className="flex gap-3 mb-3">
+                    <div className="shrink-0 text-sm font-bold text-indigo-600 dark:text-indigo-400 min-w-[80px] text-right">
+                        {match[1]}
+                    </div>
+                    <div className="text-sm text-zinc-700 dark:text-zinc-300 bg-white dark:bg-zinc-800/50 px-3 py-1.5 rounded-lg rounded-tl-none border border-zinc-100 dark:border-zinc-800 shadow-sm">
+                        {match[2]}
+                    </div>
+                </div>
+            );
+        }
+        // Fallback for lines without names (e.g. stage directions)
+        if (line.trim()) {
+            return <p key={i} className="text-xs text-zinc-400 italic mb-2 pl-24">{line}</p>;
+        }
+        return null;
+    });
+};
 
   const renderUnderlineAnswer = (text) => {
     if (!text) return null;
@@ -470,7 +497,42 @@ export default function ChapterDetail() {
                                             <h4 className="text-lg font-bold text-zinc-900 dark:text-zinc-100 leading-snug">{write.question}</h4>
                                         </div>
 
-                                        {write.type === 'INFORMAL_LETTER' && revealedAnswers[`${uIndex}-write-${wIdx}`] ? (
+                                        {write.type === 'DIALOGUE' ? (
+        <div className="space-y-6">
+            {/* Context Card */}
+            {(write.data?.characters?.length > 0 || write.data?.setting) && (
+                <div className="flex flex-wrap gap-4 p-4 bg-indigo-50/50 dark:bg-indigo-900/10 rounded-xl border border-indigo-100 dark:border-indigo-800/30">
+                    {write.data.setting && (
+                        <div className="flex items-center gap-2 text-xs font-medium text-indigo-800 dark:text-indigo-300">
+                            <MapPin size={14} className="text-indigo-500"/>
+                            <span>{write.data.setting}</span>
+                        </div>
+                    )}
+                    {write.data.characters && (
+                         <div className="flex items-center gap-2 text-xs font-medium text-indigo-800 dark:text-indigo-300">
+                            <Users size={14} className="text-indigo-500"/>
+                            <span>{write.data.characters.join(' & ')}</span>
+                        </div>
+                    )}
+                </div>
+            )}
+
+            {/* Model Answer (Script View) */}
+            {write.modelAnswer && (
+                <AnimatePresence>
+                    {revealedAnswers[`${uIndex}-write-${wIdx}`] && (
+                        <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden">
+                            <div className="mt-4 p-6 bg-zinc-50 dark:bg-zinc-800/30 border-l-4 border-indigo-400 rounded-r-lg">
+                                {renderDialogueScript(write.modelAnswer)}
+                            </div>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
+            )}
+        </div>
+    )
+
+                                        : write.type === 'INFORMAL_LETTER' && revealedAnswers[`${uIndex}-write-${wIdx}`] ? (
                                             <div className="mt-8 bg-zinc-50 dark:bg-zinc-800/20 border border-zinc-200 dark:border-zinc-700/50 p-6 sm:p-10 rounded-xl font-serif text-sm leading-relaxed text-zinc-800 dark:text-zinc-200 shadow-inner">
 
                                                 {/* 1. Top Right: Sender Address & Date */}
