@@ -14,7 +14,7 @@ const QuestionSchema = new mongoose.Schema({
 const WritingSchema = new mongoose.Schema({
   type: {
     type: String,
-    enum: ['PARAGRAPH', 'STORY', 'NOTICE', 'FAMILY_CHART', 'FORMAL_LETTER', 'INFORMAL_LETTER', 'PROCESS', 'DIARY', 'DIALOGUE'],
+    enum: ['PARAGRAPH', 'STORY', 'NOTICE', 'FAMILY_CHART', 'FORMAL_LETTER', 'INFORMAL_LETTER', 'PROCESS', 'DIARY', 'DIALOGUE', 'SUMMARY'],
     required: true
   },
   question: { type: String, required: true },
@@ -22,6 +22,7 @@ const WritingSchema = new mongoose.Schema({
   data: {
     hints: [String],
     wordLimit: String,
+    passage: String,
 
     // UPDATED: Added partnerId
     familyMembers: [{

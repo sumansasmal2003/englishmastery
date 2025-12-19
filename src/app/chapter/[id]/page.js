@@ -530,6 +530,47 @@ export default function ChapterDetail() {
                 </AnimatePresence>
             )}
         </div>
+    ) : write.type === 'SUMMARY' ? (
+        // --- NEW: SUMMARY RENDERER ---
+        <div className="space-y-6">
+
+            {/* The Passage Card */}
+            {write.data?.passage && (
+                <div className="p-6 bg-zinc-50 dark:bg-zinc-800/30 rounded-xl border border-zinc-200 dark:border-zinc-700/50 shadow-sm relative group">
+                    <div className="absolute top-0 right-0 px-3 py-1 bg-zinc-200 dark:bg-zinc-700 rounded-bl-xl text-[10px] font-bold text-zinc-500 uppercase tracking-widest">
+                        Passage
+                    </div>
+                    <p className="text-sm md:text-base leading-relaxed font-serif text-zinc-800 dark:text-zinc-200 whitespace-pre-wrap">
+                        {write.data.passage}
+                    </p>
+                </div>
+            )}
+
+            {/* Word Limit Tag */}
+            {write.data?.wordLimit && (
+                <div className="flex justify-end">
+                    <span className="text-xs font-mono text-zinc-400 bg-zinc-100 dark:bg-zinc-800 px-2 py-1 rounded">
+                        Limit: {write.data.wordLimit}
+                    </span>
+                </div>
+            )}
+
+            {/* Model Answer (The Summary) */}
+            {write.modelAnswer && (
+                <AnimatePresence>
+                    {revealedAnswers[`${uIndex}-write-${wIdx}`] && (
+                        <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden">
+                            <div className="mt-2 p-6 bg-emerald-50/50 dark:bg-emerald-900/10 border-l-4 border-emerald-400 rounded-r-lg">
+                                <h5 className="text-xs font-bold text-emerald-600 dark:text-emerald-400 uppercase mb-2">Summary Model Answer:</h5>
+                                <p className="whitespace-pre-wrap text-sm leading-relaxed text-zinc-800 dark:text-zinc-200">
+                                    {write.modelAnswer}
+                                </p>
+                            </div>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
+            )}
+        </div>
     )
 
                                         : write.type === 'INFORMAL_LETTER' && revealedAnswers[`${uIndex}-write-${wIdx}`] ? (

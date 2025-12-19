@@ -1,4 +1,4 @@
-import { X, Trash2, Network, Plus, ArrowDownLeft, ArrowDownRight, ArrowUpRight, MapPin, Calendar, User, PenLine, Users, MessageSquare } from "lucide-react";
+import { X, Trash2, Network, Plus, ArrowDownLeft, ArrowDownRight, ArrowUpRight, MapPin, Calendar, User, PenLine, Users, MessageSquare, FileText } from "lucide-react";
 import { InputLabel, ThemedInput, ThemedTextarea } from "./SharedUI";
 
 export default function WritingBuilder({ unitIdx, wIdx, writing, onChange, onRemove }) {
@@ -116,6 +116,25 @@ export default function WritingBuilder({ unitIdx, wIdx, writing, onChange, onRem
                 <button type="button" onClick={onRemove} className="text-rose-400 hover:text-rose-600 p-1 rounded"><Trash2 size={14} /></button>
             </div>
 
+            {writing.type === 'SUMMARY' && (
+                <div className="mb-6 space-y-4 border-l-2 border-rose-200 pl-4">
+                     <div className="bg-white dark:bg-zinc-900/50 p-4 rounded-lg border border-rose-100 dark:border-rose-900/20">
+                        <h4 className="text-[10px] font-bold text-rose-400 uppercase tracking-widest mb-3 flex items-center gap-1">
+                            <FileText size={12}/> Source Passage
+                        </h4>
+                        <div>
+                            <InputLabel>Passage to Summarize</InputLabel>
+                            <ThemedTextarea
+                                value={writing.data?.passage || ""}
+                                onChange={(e) => updateData('passage', e.target.value)}
+                                placeholder="Paste the original text here..."
+                                className="min-h-[150px] font-serif"
+                            />
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {/* --- DIALOGUE FORM --- */}
             {writing.type === 'DIALOGUE' && (
                 <div className="mb-6 space-y-4 border-l-2 border-rose-200 pl-4">
@@ -202,7 +221,7 @@ export default function WritingBuilder({ unitIdx, wIdx, writing, onChange, onRem
             ) : null}
 
             {/* --- GENERIC HINTS --- */}
-            {writing.type !== 'FAMILY_CHART' && writing.type !== 'INFORMAL_LETTER' && (
+            {!['FAMILY_CHART', 'INFORMAL_LETTER', 'SUMMARY', 'DIALOGUE'].includes(writing.type) && (
                 <div className="grid md:grid-cols-2 gap-4 mb-4">
                      <div className="col-span-2">
                         <InputLabel>Hints / Points</InputLabel>
@@ -213,6 +232,17 @@ export default function WritingBuilder({ unitIdx, wIdx, writing, onChange, onRem
                         />
                      </div>
                 </div>
+            )}
+
+            {writing.type === 'SUMMARY' && (
+                 <div className="mb-4">
+                    <InputLabel>Word Limit</InputLabel>
+                    <ThemedInput
+                        value={writing.data?.wordLimit || ""}
+                        onChange={(e) => updateData('wordLimit', e.target.value)}
+                        placeholder="e.g. 1/3 of original length"
+                    />
+                 </div>
             )}
 
             <div><InputLabel>Model Answer</InputLabel><ThemedTextarea value={writing.modelAnswer} onChange={(e) => updateField('modelAnswer', e.target.value)} placeholder="Answer..." className="min-h-[100px]"/></div>

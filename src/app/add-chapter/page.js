@@ -168,6 +168,14 @@ export default function AdminPanel() {
           };
       } else if (['STORY', 'PARAGRAPH', 'NOTICE'].includes(type)) {
           initialData.hints = ["Point 1", "Point 2"];
+      } else if (type === 'DIALOGUE') {
+          defaultQuestion = "Write a dialogue between...";
+          initialData.characters = ["Person A", "Person B"];
+          initialData.setting = "Scene context...";
+      } else if (type === 'SUMMARY') {
+          defaultQuestion = "Write a summary of the following passage.";
+          initialData.passage = "Paste text here...";
+          initialData.wordLimit = "Approx. 50 words";
       }
 
       u[unitIdx].writings.push({
@@ -211,29 +219,29 @@ export default function AdminPanel() {
     try {
       const res = await fetch(endpoint, { method, headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
       const data = await res.json();
-      if (data.success) { showNotification('success', 'Saved!'); if(!editingId) resetForm(); fetchData(); } else { showNotification('error', data.error); }
+      if (data.success) { showNotification('success', 'Saved Successfully'); if(!editingId) resetForm(); fetchData(); } else { showNotification('error', data.error); }
     } catch (err) { console.error(err); } finally { setLoading(false); }
   };
 
   return (
-    <div className="min-h-screen bg-zinc-50 dark:bg-black text-zinc-900 dark:text-zinc-200 font-sans selection:bg-indigo-500/30">
+    <div className="min-h-screen bg-white dark:bg-black text-zinc-900 dark:text-zinc-200 font-sans selection:bg-zinc-300 dark:selection:bg-zinc-700">
 
       {/* Header */}
-      <header className="fixed top-0 inset-x-0 z-40 border-b border-zinc-200 dark:border-white/5 bg-white/80 dark:bg-black/80 backdrop-blur-xl transition-colors">
+      <header className="fixed top-0 inset-x-0 z-40 border-b border-zinc-200 dark:border-white/10 bg-white/80 dark:bg-black/80 backdrop-blur-xl transition-colors">
         <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
           <div className="flex items-center gap-6">
-            <Link href="/" className="p-2 -ml-2 text-zinc-500 hover:text-zinc-900 dark:hover:text-white rounded-full transition-colors"><ArrowLeft size={20} /></Link>
+            <Link href="/" className="p-2 -ml-2 text-zinc-500 hover:text-black dark:hover:text-white rounded-full transition-colors"><ArrowLeft size={20} /></Link>
             <div className="flex items-center bg-zinc-100 dark:bg-zinc-900 p-1 rounded-lg border border-zinc-200 dark:border-zinc-800">
-                <button onClick={() => { setActiveTab("chapter"); resetForm(); }} className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-xs font-bold transition-all ${activeTab === "chapter" ? 'bg-white dark:bg-zinc-800 shadow-sm text-indigo-600 dark:text-indigo-400' : 'text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-300'}`}><BookOpen size={14} /> Literature</button>
-                <button onClick={() => { setActiveTab("grammar"); resetForm(); }} className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-xs font-bold transition-all ${activeTab === "grammar" ? 'bg-white dark:bg-zinc-800 shadow-sm text-emerald-600 dark:text-emerald-400' : 'text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-300'}`}><PenTool size={14} /> Grammar</button>
+                <button onClick={() => { setActiveTab("chapter"); resetForm(); }} className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-xs font-bold transition-all ${activeTab === "chapter" ? 'bg-white dark:bg-zinc-800 shadow-sm text-zinc-900 dark:text-white' : 'text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-300'}`}><BookOpen size={14} /> Literature</button>
+                <button onClick={() => { setActiveTab("grammar"); resetForm(); }} className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-xs font-bold transition-all ${activeTab === "grammar" ? 'bg-white dark:bg-zinc-800 shadow-sm text-zinc-900 dark:text-white' : 'text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-300'}`}><PenTool size={14} /> Grammar</button>
             </div>
           </div>
           <div className='flex items-center justify-center gap-2'>
-            <button onClick={resetForm} className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-bold transition-all ${!editingId ? 'bg-indigo-100 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400' : 'bg-zinc-100 dark:bg-zinc-900 text-zinc-500 hover:text-indigo-500'}`}><FilePlus size={14} /><span>New {activeTab === "chapter" ? "Chapter" : "Topic"}</span></button>
+            <button onClick={resetForm} className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-bold transition-all ${!editingId ? 'bg-zinc-900 dark:bg-zinc-100 text-white dark:text-black' : 'bg-zinc-100 dark:bg-zinc-900 text-zinc-500 hover:text-black dark:hover:text-white'}`}><FilePlus size={14} /><span>New {activeTab === "chapter" ? "Chapter" : "Topic"}</span></button>
 
             <button
                 onClick={() => signOut({ callbackUrl: '/login' })}
-                className="p-2 text-zinc-500 hover:text-red-500 transition-colors"
+                className="p-2 text-zinc-500 hover:text-black dark:hover:text-white transition-colors"
                 title="Sign Out"
               >
                 <LogOut size={18} />
@@ -256,16 +264,16 @@ export default function AdminPanel() {
                                 <div className="p-8 text-center text-zinc-500 text-xs py-12">No items found</div>
                             ) : (
                                 (activeTab === "chapter" ? chaptersList : grammarList).map((item) => (
-                                    <button key={item._id} onClick={() => loadForEdit(item)} className={`w-full text-left p-4 hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-all flex items-center justify-between group ${editingId === item._id ? 'bg-indigo-50 dark:bg-indigo-500/10 border-l-4 border-indigo-500' : 'border-l-4 border-transparent'}`}>
-                                        <div>
-                                            <div className="flex items-center gap-2 mb-1">
-                                                <span className={`text-[10px] font-mono px-1.5 py-0.5 rounded ${activeTab === "chapter" ? 'bg-zinc-100 dark:bg-zinc-800 text-zinc-500' : 'bg-emerald-100/50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400'}`}>
-                                                    {activeTab === "chapter" ? `Cl ${item.classLevel}` : 'Ref'}
-                                                </span>
+                                    <button key={item._id} onClick={() => loadForEdit(item)} className={`w-full text-left p-4 hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-all flex items-center justify-between group ${editingId === item._id ? 'bg-zinc-50 dark:bg-zinc-800/80 border-l-4 border-zinc-900 dark:border-zinc-100' : 'border-l-4 border-transparent'}`}>
+                                            <div>
+                                                <div className="flex items-center gap-2 mb-1">
+                                                    <span className={`text-[10px] font-mono px-1.5 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400`}>
+                                                        {activeTab === "chapter" ? `Cl ${item.classLevel}` : 'Ref'}
+                                                    </span>
+                                                </div>
+                                                <h3 className={`text-sm font-medium line-clamp-1 transition-colors ${editingId === item._id ? 'text-black dark:text-white' : 'text-zinc-600 dark:text-zinc-400 group-hover:text-black dark:group-hover:text-white'}`}>{activeTab === "chapter" ? item.title : item.topic}</h3>
                                             </div>
-                                            <h3 className={`text-sm font-medium line-clamp-1 transition-colors ${editingId === item._id ? 'text-indigo-600 dark:text-indigo-400' : 'text-zinc-700 dark:text-zinc-300 group-hover:text-black dark:group-hover:text-white'}`}>{activeTab === "chapter" ? item.title : item.topic}</h3>
-                                        </div>
-                                        <Edit3 size={14} className={`transition-opacity ${editingId === item._id ? 'text-indigo-500 opacity-100' : 'text-zinc-400 opacity-0 group-hover:opacity-100'}`} />
+                                            <Edit3 size={14} className={`transition-opacity ${editingId === item._id ? 'text-black dark:text-white opacity-100' : 'text-zinc-400 opacity-0 group-hover:opacity-100'}`} />
                                     </button>
                                 ))
                             )}
@@ -299,90 +307,90 @@ export default function AdminPanel() {
                                 {/* 2. Units Loop */}
                                 {chapterForm.units?.map((unit, uIdx) => (
                                     <motion.div key={uIdx} initial={{opacity:0, y:20}} animate={{opacity:1, y:0}} className="bg-white dark:bg-zinc-900/10 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-6 relative shadow-sm dark:shadow-none">
-                                        <div className="flex gap-4 mb-6 pb-6 border-b border-zinc-100 dark:border-zinc-800">
-                                            <div className="flex-1"><InputLabel>Unit Title</InputLabel><ThemedInput value={unit.title} onChange={(e) => updateUnitTitle(uIdx, e.target.value)} /></div>
-                                            <button type="button" onClick={() => removeUnit(uIdx)} className="mt-6 p-2 text-zinc-400 hover:text-red-500 rounded-lg transition-colors"><Trash2 size={18} /></button>
-                                        </div>
-
-                                        {/* Paragraphs */}
-                                        <div className="space-y-5 mb-8">
-                                            <h3 className="text-xs font-bold text-zinc-400 uppercase tracking-widest flex items-center gap-2"><AlignLeft size={14}/> Text Content</h3>
-                                            {unit.paragraphs?.map((p, pIdx) => (
-                                                <div key={pIdx} className="grid md:grid-cols-2 gap-4 group">
-                                                    <ThemedTextarea value={p.english} onChange={(e) => updateParagraph(uIdx, pIdx, 'english', e.target.value)} placeholder="English text..." />
-                                                    <div className="relative">
-                                                        <ThemedTextarea value={p.bengali} onChange={(e) => updateParagraph(uIdx, pIdx, 'bengali', e.target.value)} placeholder="Bengali translation..." />
-                                                        <button type="button" onClick={() => removeParagraph(uIdx, pIdx)} className="absolute top-2 right-2 p-1 text-zinc-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"><X size={14}/></button>
-                                                    </div>
-                                                </div>
-                                            ))}
-                                            <button type="button" onClick={() => addParagraph(uIdx)} className="w-full py-2.5 border border-dashed border-zinc-300 dark:border-zinc-700 rounded-lg text-xs font-bold text-zinc-500 hover:text-indigo-500">+ Add Paragraph Block</button>
-                                        </div>
-
-                                        {/* Activities */}
-                                        <div className="pt-6 border-t border-zinc-100 dark:border-zinc-800/50 mb-8">
-                                            <div className="flex justify-between items-center mb-6">
-                                                <h3 className="text-xs font-bold text-zinc-400 uppercase tracking-widest flex items-center gap-2"><Layers size={14}/> Interactive Activities</h3>
-                                                <div className="group relative z-20">
-                                                    <button type="button" className="text-xs font-bold text-indigo-600 bg-indigo-50 dark:bg-indigo-900/20 px-3 py-1.5 rounded-md flex items-center gap-1 hover:bg-indigo-100 transition-colors"><Plus size={14}/> Add Activity</button>
-                                                    <div className="absolute right-0 top-full mt-2 w-48 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-lg shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-10 flex flex-col p-1 transform origin-top-right scale-95 group-hover:scale-100 max-h-60 overflow-y-auto custom-scrollbar">
-                                                        {['MCQ', 'TRUE_FALSE', 'MATCHING', 'FILL_BLANKS', 'WORD_BOX', 'REARRANGE', 'UNDERLINE', 'UNDERLINE_CIRCLE', 'CATEGORIZE', 'CAUSE_EFFECT', 'QA', 'CHART_FILL'].map(type => (
-                                                            <button key={type} type="button" onClick={() => addActivityGroup(uIdx, type)} className="text-left px-3 py-2 text-xs font-medium hover:bg-zinc-50 dark:hover:bg-zinc-800 rounded text-zinc-600 dark:text-zinc-300 flex items-center gap-2">
-                                                                {type.replace('_', ' ')}
-                                                            </button>
-                                                        ))}
-                                                    </div>
-                                                </div>
+                                            <div className="flex gap-4 mb-6 pb-6 border-b border-zinc-100 dark:border-zinc-800">
+                                                <div className="flex-1"><InputLabel>Unit Title</InputLabel><ThemedInput value={unit.title} onChange={(e) => updateUnitTitle(uIdx, e.target.value)} /></div>
+                                                <button type="button" onClick={() => removeUnit(uIdx)} className="mt-6 p-2 text-zinc-400 hover:text-black dark:hover:text-white rounded-lg transition-colors"><Trash2 size={18} /></button>
                                             </div>
 
-                                            <div className="space-y-6">
-                                                {unit.activities?.map((act, actIdx) => (
-                                                    <ActivityBuilder
-                                                        key={actIdx}
-                                                        unitIdx={uIdx}
-                                                        actIdx={actIdx}
-                                                        activity={act}
-                                                        onChange={(newAct) => updateActivity(uIdx, actIdx, newAct)}
-                                                        onRemove={() => removeActivity(uIdx, actIdx)}
-                                                    />
+                                            {/* Paragraphs */}
+                                            <div className="space-y-5 mb-8">
+                                                <h3 className="text-xs font-bold text-zinc-400 uppercase tracking-widest flex items-center gap-2"><AlignLeft size={14}/> Text Content</h3>
+                                                {unit.paragraphs?.map((p, pIdx) => (
+                                                    <div key={pIdx} className="grid md:grid-cols-2 gap-4 group">
+                                                        <ThemedTextarea value={p.english} onChange={(e) => updateParagraph(uIdx, pIdx, 'english', e.target.value)} placeholder="English text..." />
+                                                        <div className="relative">
+                                                            <ThemedTextarea value={p.bengali} onChange={(e) => updateParagraph(uIdx, pIdx, 'bengali', e.target.value)} placeholder="Bengali translation..." />
+                                                            <button type="button" onClick={() => removeParagraph(uIdx, pIdx)} className="absolute top-2 right-2 p-1 text-zinc-300 hover:text-black dark:hover:text-white opacity-0 group-hover:opacity-100 transition-opacity"><X size={14}/></button>
+                                                        </div>
+                                                    </div>
                                                 ))}
+                                                <button type="button" onClick={() => addParagraph(uIdx)} className="w-full py-2.5 border border-dashed border-zinc-300 dark:border-zinc-700 rounded-lg text-xs font-bold text-zinc-500 hover:text-black dark:hover:text-white hover:border-zinc-400 transition-colors">+ Add Paragraph Block</button>
                                             </div>
-                                        </div>
 
-                                        {/* Writing Skills */}
-                                        <div className="pt-6 border-t border-zinc-100 dark:border-zinc-800/50">
-                                            <div className="flex justify-between items-center mb-6">
-                                                <h3 className="text-xs font-bold text-zinc-400 uppercase tracking-widest flex items-center gap-2"><PenTool size={14}/> Writing Studio</h3>
-                                                <div className="group relative z-20">
-                                                    <button type="button" className="text-xs font-bold text-rose-600 bg-rose-50 dark:bg-rose-900/20 px-3 py-1.5 rounded-md flex items-center gap-1 hover:bg-rose-100 transition-colors"><Plus size={14}/> Add Writing Task</button>
-                                                    <div className="absolute right-0 top-full mt-2 w-48 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-lg shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-10 flex flex-col p-1 transform origin-top-right scale-95 group-hover:scale-100 max-h-60 overflow-y-auto custom-scrollbar">
-                                                        {['PARAGRAPH', 'STORY', 'NOTICE', 'FAMILY_CHART', 'FORMAL_LETTER', 'INFORMAL_LETTER', 'PROCESS', 'DIARY', 'DIALOGUE'].map(type => (
-                                                            <button key={type} type="button" onClick={() => addWritingTask(uIdx, type)} className="text-left px-3 py-2 text-xs font-medium hover:bg-zinc-50 dark:hover:bg-zinc-800 rounded text-zinc-600 dark:text-zinc-300">
-                                                                {type.replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, l => l.toUpperCase())}
-                                                            </button>
-                                                        ))}
+                                            {/* Activities */}
+                                            <div className="pt-6 border-t border-zinc-100 dark:border-zinc-800/50 mb-8">
+                                                <div className="flex justify-between items-center mb-6">
+                                                    <h3 className="text-xs font-bold text-zinc-400 uppercase tracking-widest flex items-center gap-2"><Layers size={14}/> Interactive Activities</h3>
+                                                    <div className="group relative z-20">
+                                                        <button type="button" className="text-xs font-bold text-zinc-800 dark:text-zinc-200 bg-zinc-100 dark:bg-zinc-800 px-3 py-1.5 rounded-md flex items-center gap-1 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors"><Plus size={14}/> Add Activity</button>
+                                                        <div className="absolute right-0 top-full mt-2 w-48 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-lg shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-10 flex flex-col p-1 transform origin-top-right scale-95 group-hover:scale-100 max-h-60 overflow-y-auto custom-scrollbar">
+                                                            {['MCQ', 'TRUE_FALSE', 'MATCHING', 'FILL_BLANKS', 'WORD_BOX', 'REARRANGE', 'UNDERLINE', 'UNDERLINE_CIRCLE', 'CATEGORIZE', 'CAUSE_EFFECT', 'QA', 'CHART_FILL'].map(type => (
+                                                                <button key={type} type="button" onClick={() => addActivityGroup(uIdx, type)} className="text-left px-3 py-2 text-xs font-medium hover:bg-zinc-50 dark:hover:bg-zinc-800 rounded text-zinc-600 dark:text-zinc-300 flex items-center gap-2 hover:text-black dark:hover:text-white">
+                                                                    {type.replace('_', ' ')}
+                                                                </button>
+                                                            ))}
+                                                        </div>
                                                     </div>
+                                                </div>
+
+                                                <div className="space-y-6">
+                                                    {unit.activities?.map((act, actIdx) => (
+                                                        <ActivityBuilder
+                                                            key={actIdx}
+                                                            unitIdx={uIdx}
+                                                            actIdx={actIdx}
+                                                            activity={act}
+                                                            onChange={(newAct) => updateActivity(uIdx, actIdx, newAct)}
+                                                            onRemove={() => removeActivity(uIdx, actIdx)}
+                                                        />
+                                                    ))}
                                                 </div>
                                             </div>
 
-                                            <div className="space-y-6">
-                                                {unit.writings?.map((write, wIdx) => (
-                                                    <WritingBuilder
-                                                        key={wIdx}
-                                                        unitIdx={uIdx}
-                                                        wIdx={wIdx}
-                                                        writing={write}
-                                                        onChange={(newWrite) => updateWriting(uIdx, wIdx, newWrite)}
-                                                        onRemove={() => removeWriting(uIdx, wIdx)}
-                                                    />
-                                                ))}
+                                            {/* Writing Skills */}
+                                            <div className="pt-6 border-t border-zinc-100 dark:border-zinc-800/50">
+                                                <div className="flex justify-between items-center mb-6">
+                                                    <h3 className="text-xs font-bold text-zinc-400 uppercase tracking-widest flex items-center gap-2"><PenTool size={14}/> Writing Studio</h3>
+                                                    <div className="group relative z-20">
+                                                        <button type="button" className="text-xs font-bold text-zinc-800 dark:text-zinc-200 bg-zinc-100 dark:bg-zinc-800 px-3 py-1.5 rounded-md flex items-center gap-1 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors"><Plus size={14}/> Add Writing Task</button>
+                                                        <div className="absolute right-0 top-full mt-2 w-48 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-lg shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-10 flex flex-col p-1 transform origin-top-right scale-95 group-hover:scale-100 max-h-60 overflow-y-auto custom-scrollbar">
+                                                            {['PARAGRAPH', 'STORY', 'NOTICE', 'FAMILY_CHART', 'FORMAL_LETTER', 'INFORMAL_LETTER', 'PROCESS', 'DIARY', 'DIALOGUE', 'SUMMARY'].map(type => (
+                                                                <button key={type} type="button" onClick={() => addWritingTask(uIdx, type)} className="text-left px-3 py-2 text-xs font-medium hover:bg-zinc-50 dark:hover:bg-zinc-800 rounded text-zinc-600 dark:text-zinc-300 hover:text-black dark:hover:text-white">
+                                                                    {type.replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, l => l.toUpperCase())}
+                                                                </button>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+                                                </div>
+
+                                                <div className="space-y-6">
+                                                    {unit.writings?.map((write, wIdx) => (
+                                                        <WritingBuilder
+                                                            key={wIdx}
+                                                            unitIdx={uIdx}
+                                                            wIdx={wIdx}
+                                                            writing={write}
+                                                            onChange={(newWrite) => updateWriting(uIdx, wIdx, newWrite)}
+                                                            onRemove={() => removeWriting(uIdx, wIdx)}
+                                                        />
+                                                    ))}
+                                                </div>
                                             </div>
-                                        </div>
 
                                     </motion.div>
                                 ))}
 
-                                <button type="button" onClick={addUnit} className="w-full py-6 border border-dashed border-zinc-300 dark:border-zinc-800 rounded-xl text-zinc-500 hover:bg-zinc-50 dark:hover:bg-zinc-900/50 flex flex-col items-center gap-2">
+                                <button type="button" onClick={addUnit} className="w-full py-6 border border-dashed border-zinc-300 dark:border-zinc-800 rounded-xl text-zinc-500 hover:bg-zinc-50 dark:hover:bg-zinc-900/50 hover:text-black dark:hover:text-white transition-all flex flex-col items-center gap-2">
                                     <Plus size={24} /> <span className="text-sm font-bold">Create New Unit</span>
                                 </button>
                             </motion.div>
@@ -406,32 +414,32 @@ export default function AdminPanel() {
 
                                 {grammarForm.sections.map((sec, idx) => (
                                     <motion.div key={idx} initial={{opacity:0, y:20}} animate={{opacity:1, y:0}} className="bg-white dark:bg-zinc-900/10 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-6 relative">
-                                        <div className="flex gap-4 mb-4 pb-4 border-b border-zinc-100 dark:border-zinc-800">
-                                            <div className="flex-1"><InputLabel>Rule Title</InputLabel><ThemedInput value={sec.title} onChange={(e) => updateSection(idx, 'title', e.target.value)} /></div>
-                                            <button type="button" onClick={() => removeGrammarSection(idx)} className="mt-6 p-2 text-zinc-400 hover:text-red-500"><Trash2 size={18} /></button>
-                                        </div>
-                                        <div className="mb-6"><InputLabel>Explanation</InputLabel><ThemedTextarea value={sec.content} onChange={(e) => updateSection(idx, 'content', e.target.value)} /></div>
+                                            <div className="flex gap-4 mb-4 pb-4 border-b border-zinc-100 dark:border-zinc-800">
+                                                <div className="flex-1"><InputLabel>Rule Title</InputLabel><ThemedInput value={sec.title} onChange={(e) => updateSection(idx, 'title', e.target.value)} /></div>
+                                                <button type="button" onClick={() => removeGrammarSection(idx)} className="mt-6 p-2 text-zinc-400 hover:text-black dark:hover:text-white"><Trash2 size={18} /></button>
+                                            </div>
+                                            <div className="mb-6"><InputLabel>Explanation</InputLabel><ThemedTextarea value={sec.content} onChange={(e) => updateSection(idx, 'content', e.target.value)} /></div>
 
-                                        <div className="bg-zinc-50 dark:bg-zinc-900/50 p-5 rounded-xl border border-zinc-100 dark:border-zinc-800/50">
-                                            <div className="flex justify-between items-center mb-3">
-                                                <span className="text-xs font-bold text-zinc-500 uppercase flex items-center gap-1"><Lightbulb size={12}/> Examples</span>
-                                                <button type="button" onClick={() => addExample(idx)} className="text-[10px] bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 px-2 py-1 rounded hover:text-emerald-500 shadow-sm">+ Add</button>
-                                            </div>
-                                            <div className="space-y-3">
-                                                {sec.examples.map((ex, exIdx) => (
-                                                    <div key={exIdx} className="flex gap-2 items-start">
-                                                        <div className="flex-1 grid gap-2">
-                                                            <input className="w-full bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded px-2 py-1.5 text-sm outline-none focus:border-indigo-500" placeholder="Sentence..." value={ex.sentence} onChange={(e) => updateExample(idx, exIdx, 'sentence', e.target.value)} />
-                                                            <input className="w-full bg-transparent border-b border-dashed border-zinc-300 dark:border-zinc-700 px-2 py-1 text-xs text-zinc-500 outline-none" placeholder="Why is this correct? (Optional)" value={ex.explanation} onChange={(e) => updateExample(idx, exIdx, 'explanation', e.target.value)} />
+                                            <div className="bg-zinc-50 dark:bg-zinc-900/50 p-5 rounded-xl border border-zinc-100 dark:border-zinc-800/50">
+                                                <div className="flex justify-between items-center mb-3">
+                                                    <span className="text-xs font-bold text-zinc-500 uppercase flex items-center gap-1"><Lightbulb size={12}/> Examples</span>
+                                                    <button type="button" onClick={() => addExample(idx)} className="text-[10px] bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 px-2 py-1 rounded hover:bg-zinc-100 dark:hover:bg-zinc-700 hover:text-black dark:hover:text-white shadow-sm">+ Add</button>
+                                                </div>
+                                                <div className="space-y-3">
+                                                    {sec.examples.map((ex, exIdx) => (
+                                                        <div key={exIdx} className="flex gap-2 items-start">
+                                                            <div className="flex-1 grid gap-2">
+                                                                <input className="w-full bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded px-2 py-1.5 text-sm outline-none focus:border-zinc-500 focus:ring-1 focus:ring-zinc-500" placeholder="Sentence..." value={ex.sentence} onChange={(e) => updateExample(idx, exIdx, 'sentence', e.target.value)} />
+                                                                <input className="w-full bg-transparent border-b border-dashed border-zinc-300 dark:border-zinc-700 px-2 py-1 text-xs text-zinc-500 outline-none" placeholder="Why is this correct? (Optional)" value={ex.explanation} onChange={(e) => updateExample(idx, exIdx, 'explanation', e.target.value)} />
+                                                            </div>
+                                                            <button type="button" onClick={() => removeExample(idx, exIdx)} className="p-1 text-zinc-400 hover:text-black dark:hover:text-white"><Trash2 size={14} /></button>
                                                         </div>
-                                                        <button type="button" onClick={() => removeExample(idx, exIdx)} className="p-1 text-zinc-400 hover:text-red-500"><Trash2 size={14} /></button>
-                                                    </div>
-                                                ))}
+                                                    ))}
+                                                </div>
                                             </div>
-                                        </div>
                                     </motion.div>
                                 ))}
-                                <button type="button" onClick={addGrammarSection} className="w-full py-4 border border-dashed border-zinc-300 rounded-xl text-zinc-500 text-sm hover:bg-zinc-50">+ Add New Rule</button>
+                                <button type="button" onClick={addGrammarSection} className="w-full py-4 border border-dashed border-zinc-300 rounded-xl text-zinc-500 text-sm hover:bg-zinc-50 hover:text-black transition-colors">+ Add New Rule</button>
                             </motion.div>
                         </AnimatePresence>
                     )}
@@ -445,16 +453,16 @@ export default function AdminPanel() {
         <div className="bg-white/90 dark:bg-zinc-900/90 backdrop-blur-md border border-zinc-200 dark:border-zinc-800 p-2 pl-6 rounded-full shadow-2xl flex items-center gap-4 pointer-events-auto">
             <span className="text-xs text-zinc-500 font-medium hidden sm:inline">{editingId ? "Updating Content..." : "Creating New Content..."}</span>
             <div className="h-4 w-px bg-zinc-200 dark:bg-zinc-700 hidden sm:block"></div>
-            <button onClick={handleSubmit} disabled={loading} className={`flex items-center gap-2 px-6 py-2.5 bg-zinc-900 dark:bg-zinc-100 text-white dark:text-black text-sm font-bold rounded-full hover:scale-105 active:scale-95 transition-all ${loading ? 'opacity-80 cursor-not-allowed' : ''}`}>
+            <button onClick={handleSubmit} disabled={loading} className={`flex items-center gap-2 px-6 py-2.5 bg-black dark:bg-white text-white dark:text-black text-sm font-bold rounded-full hover:scale-105 active:scale-95 transition-all ${loading ? 'opacity-80 cursor-not-allowed' : ''}`}>
                 {loading ? <Loader2 size={16} className="animate-spin"/> : <Save size={16} />}
                 <span>{editingId ? 'Update Changes' : 'Publish Now'}</span>
             </button>
         </div>
       </motion.div>
 
-      {/* Toast Notification */}
+      {/* Toast Notification (Monochrome) */}
       <AnimatePresence>
-        {notification && <motion.div initial={{opacity:0, y:20}} animate={{opacity:1, y:0}} exit={{opacity:0, y:20}} className={`fixed bottom-24 right-6 z-50 px-4 py-3 rounded-lg shadow-xl backdrop-blur-md flex items-center gap-2 text-sm font-medium border ${notification.type === 'success' ? 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800' : 'bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400 border-red-200 dark:border-red-800'}`}>{notification.type === 'success' ? <CheckCircle2 size={16}/> : <AlertCircle size={16}/>}{notification.message}</motion.div>}
+        {notification && <motion.div initial={{opacity:0, y:20}} animate={{opacity:1, y:0}} exit={{opacity:0, y:20}} className={`fixed bottom-24 right-6 z-50 px-4 py-3 rounded-lg shadow-xl backdrop-blur-md flex items-center gap-2 text-sm font-bold border ${notification.type === 'success' ? 'bg-zinc-900 text-white dark:bg-zinc-100 dark:text-black border-zinc-900 dark:border-zinc-100' : 'bg-white text-zinc-900 dark:bg-black dark:text-white border-zinc-200 dark:border-zinc-800'}`}>{notification.type === 'success' ? <CheckCircle2 size={16}/> : <AlertCircle size={16}/>}{notification.message}</motion.div>}
       </AnimatePresence>
     </div>
   );
