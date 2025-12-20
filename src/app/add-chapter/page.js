@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
+import TestGenerator from "./components/TestGenerator";
 
 // Import Refactored Components
 import ActivityBuilder from "./components/ActivityBuilder";
@@ -25,6 +26,7 @@ export default function AdminPanel() {
   const [grammarList, setGrammarList] = useState([]);
   const [notification, setNotification] = useState(null);
   const [editingId, setEditingId] = useState(null);
+  const [showTestModal, setShowTestModal] = useState(false);
 
   // --- Initial States ---
   const initialChapterState = {
@@ -237,6 +239,12 @@ export default function AdminPanel() {
             </div>
           </div>
           <div className='flex items-center justify-center gap-2'>
+            <button
+                onClick={() => setShowTestModal(true)}
+                className="flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-bold transition-all bg-rose-100 dark:bg-rose-500/20 text-rose-600 dark:text-rose-400 hover:bg-rose-200"
+            >
+                <FileText size={14} /><span>Test Mode</span>
+            </button>
             <button onClick={resetForm} className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-bold transition-all ${!editingId ? 'bg-zinc-900 dark:bg-zinc-100 text-white dark:text-black' : 'bg-zinc-100 dark:bg-zinc-900 text-zinc-500 hover:text-black dark:hover:text-white'}`}><FilePlus size={14} /><span>New {activeTab === "chapter" ? "Chapter" : "Topic"}</span></button>
 
             <button
@@ -462,8 +470,27 @@ export default function AdminPanel() {
 
       {/* Toast Notification (Monochrome) */}
       <AnimatePresence>
-        {notification && <motion.div initial={{opacity:0, y:20}} animate={{opacity:1, y:0}} exit={{opacity:0, y:20}} className={`fixed bottom-24 right-6 z-50 px-4 py-3 rounded-lg shadow-xl backdrop-blur-md flex items-center gap-2 text-sm font-bold border ${notification.type === 'success' ? 'bg-zinc-900 text-white dark:bg-zinc-100 dark:text-black border-zinc-900 dark:border-zinc-100' : 'bg-white text-zinc-900 dark:bg-black dark:text-white border-zinc-200 dark:border-zinc-800'}`}>{notification.type === 'success' ? <CheckCircle2 size={16}/> : <AlertCircle size={16}/>}{notification.message}</motion.div>}
+        {notification && (
+          <motion.div
+            initial={{opacity:0, y:20}}
+            animate={{opacity:1, y:0}}
+            exit={{opacity:0, y:20}}
+            className={`fixed bottom-24 right-6 z-50 px-4 py-3 rounded-lg shadow-xl backdrop-blur-md flex items-center gap-2 text-sm font-bold border ${notification.type === 'success' ? 'bg-zinc-900 text-white dark:bg-zinc-100 dark:text-black border-zinc-900 dark:border-zinc-100' : 'bg-white text-zinc-900 dark:bg-black dark:text-white border-zinc-200 dark:border-zinc-800'}`}
+          >
+            {notification.type === 'success' ? <CheckCircle2 size={16}/> : <AlertCircle size={16}/>}
+            {notification.message}
+          </motion.div>
+        )}
       </AnimatePresence>
+
+      {/* Test Generator Modal */}
+      {showTestModal && (
+        <TestGenerator
+          chaptersList={chaptersList}
+          grammarList={grammarList}
+          onClose={() => setShowTestModal(false)}
+        />
+      )}
     </div>
   );
 }

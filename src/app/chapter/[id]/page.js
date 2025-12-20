@@ -1,13 +1,23 @@
 "use client";
 import { useState, useEffect, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
+import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   ArrowLeft, Loader2, Layers, CheckCircle2, Download,
   Eye, EyeOff, ListChecks, SplitSquareHorizontal, HelpCircle, FileText, ChevronDown, ArrowDownUp, Type, BoxSelect, Highlighter, Table2, Feather, Network, Heart, ArrowRightLeft,
   Lightbulb, Grid3X3,
   Users,
-  MapPin
+  MapPin,
+  ExternalLink,
+  Book,
+  Volume2,
+  X,
+  Languages,
+  Zap,
+  RotateCw,
+  ChevronRight,
+  ChevronLeft
 } from "lucide-react";
 import ChapterChatbot from "@/components/ChapterChatbot";
 
@@ -26,6 +36,7 @@ export default function ChapterDetail() {
   const { id } = useParams();
   const router = useRouter();
   const [chapter, setChapter] = useState(null);
+  const [grammarList, setGrammarList] = useState([]);
   const [loading, setLoading] = useState(true);
   const [downloading, setDownloading] = useState(false);
 
@@ -33,23 +44,70 @@ export default function ChapterDetail() {
   const [revealedAnswers, setRevealedAnswers] = useState({});
   const [expandedActivities, setExpandedActivities] = useState({});
 
+  // --- DICTIONARY STATE ---
+  const [selectedWord, setSelectedWord] = useState(null);
+
+  // --- FLASHCARD STATE ---
+  const [showFlashcards, setShowFlashcards] = useState(false);
+  const [flashcardDeck, setFlashcardDeck] = useState([]);
+
   const pdfRef = useRef();
 
   useEffect(() => {
     if (!id) return;
-    async function fetchChapter() {
+    async function fetchData() {
       try {
-        const res = await fetch(`/api/chapters/${id}`);
-        const data = await res.json();
-        if (data.success) setChapter(data.data);
+        setLoading(true);
+        const [chapterRes, grammarRes] = await Promise.all([
+            fetch(`/api/chapters/${id}`),
+            fetch('/api/grammar')
+        ]);
+
+        const chapterData = await chapterRes.json();
+        const grammarData = await grammarRes.json();
+
+        if (chapterData.success) {
+            setChapter(chapterData.data);
+            generateFlashcards(chapterData.data); // Generate deck on load
+        }
+        if (grammarData.success) setGrammarList(grammarData.data || []);
+
       } catch (error) {
-        console.error("Error fetching chapter:", error);
+        console.error("Error fetching data:", error);
       } finally {
         setLoading(false);
       }
     }
-    fetchChapter();
+    fetchData();
   }, [id]);
+
+  // --- FLASHCARD GENERATOR LOGIC ---
+  const generateFlashcards = (chapData) => {
+      const words = new Set();
+
+      // 1. Priority: Extract from Word Box activities
+      chapData.units?.forEach(u => {
+          u.activities?.forEach(a => {
+              if(a.type === 'WORD_BOX' && a.questions?.[0]?.options) {
+                  a.questions[0].options.forEach(w => words.add(w.trim()));
+              }
+          });
+      });
+
+      // 2. Fallback: If deck is small, extract long words from text
+      if(words.size < 5) {
+          chapData.units?.forEach(u => {
+              u.paragraphs?.forEach(p => {
+                  // Regex to find words longer than 6 letters
+                  const longWords = p.english.match(/\b[a-zA-Z]{7,}\b/g) || [];
+                  longWords.forEach(w => words.add(w.toLowerCase().replace(/^\w/, c => c.toUpperCase())));
+              });
+          });
+      }
+
+      const deck = Array.from(words).map(w => ({ word: w, def: null }));
+      setFlashcardDeck(deck);
+  };
 
   const toggleReveal = (uid, aid) => {
     const key = `${uid}-${aid}`;
@@ -60,33 +118,54 @@ export default function ChapterDetail() {
       setExpandedActivities(prev => ({ ...prev, [uIndex]: !prev[uIndex] }));
   };
 
+  // --- DICTIONARY HANDLER ---
+  const handleWordClick = async (rawWord) => {
+      const word = rawWord.replace(/[^a-zA-Z]/g, "").toLowerCase();
+      if (!word) return;
+      setSelectedWord({ word, loading: true, data: null, error: null });
+      try {
+          const res = await fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${word}`);
+          if (!res.ok) throw new Error("Word not found");
+          const data = await res.json();
+          setSelectedWord({ word, loading: false, data: data[0], error: null });
+      } catch (err) {
+          setSelectedWord({ word, loading: false, data: null, error: "Definition not found." });
+      }
+  };
+
+  // --- Auto-Linker Helper ---
+  const findRelatedGrammar = (act) => {
+    if (!grammarList.length) return null;
+    const activityText = [act.instruction, ...(act.questions || []).map(q => q.text)].join(" ").toLowerCase();
+    const cleanTopics = grammarList.map(g => {
+        const cleanName = g.topic.replace(/[\(\[\{].*?[\)\]\}]/g, "").trim().toLowerCase();
+        return { ...g, cleanName };
+    });
+    const match = cleanTopics
+        .sort((a, b) => b.cleanName.length - a.cleanName.length)
+        .find(g => g.cleanName.length > 2 && activityText.includes(g.cleanName));
+    return match;
+  };
+
   // --- Helpers for Text Parsing ---
   const cleanText = (text) => text?.replace(/[{}[\]]/g, "").replace(/\|(\d+)/g, "") || "";
 
   const renderDialogueScript = (text) => {
     if (!text) return null;
     return text.split('\n').map((line, i) => {
-        // Regex to find "Name: Message" pattern
         const match = line.match(/^(.+?):\s*(.*)/);
         if (match) {
             return (
                 <div key={i} className="flex gap-3 mb-3">
-                    <div className="shrink-0 text-sm font-bold text-indigo-600 dark:text-indigo-400 min-w-[80px] text-right">
-                        {match[1]}
-                    </div>
-                    <div className="text-sm text-zinc-700 dark:text-zinc-300 bg-white dark:bg-zinc-800/50 px-3 py-1.5 rounded-lg rounded-tl-none border border-zinc-100 dark:border-zinc-800 shadow-sm">
-                        {match[2]}
-                    </div>
+                    <div className="shrink-0 text-sm font-bold text-indigo-600 dark:text-indigo-400 min-w-[80px] text-right">{match[1]}</div>
+                    <div className="text-sm text-zinc-700 dark:text-zinc-300 bg-white dark:bg-zinc-800/50 px-3 py-1.5 rounded-lg rounded-tl-none border border-zinc-100 dark:border-zinc-800 shadow-sm">{match[2]}</div>
                 </div>
             );
         }
-        // Fallback for lines without names (e.g. stage directions)
-        if (line.trim()) {
-            return <p key={i} className="text-xs text-zinc-400 italic mb-2 pl-24">{line}</p>;
-        }
+        if (line.trim()) return <p key={i} className="text-xs text-zinc-400 italic mb-2 pl-24">{line}</p>;
         return null;
     });
-};
+  };
 
   const renderUnderlineAnswer = (text) => {
     if (!text) return null;
@@ -106,9 +185,7 @@ export default function ChapterDetail() {
   const getChartParts = (text) => {
     if (!text) return { isInput: false, content: "" };
     const match = text.match(/\{(.+?)\}/);
-    if (match) {
-        return { isInput: true, answer: match[1].trim() };
-    }
+    if (match) return { isInput: true, answer: match[1].trim() };
     return { isInput: false, content: text };
   };
 
@@ -118,12 +195,8 @@ export default function ChapterDetail() {
     return (
         <span className="leading-loose text-lg">
             {parts.map((part, i) => {
-                if (part.startsWith('{') && part.endsWith('}')) {
-                    return <span key={i} className="font-bold text-emerald-600 dark:text-emerald-400 border-b-2 border-emerald-500 mx-1">{part.slice(1, -1)}</span>;
-                }
-                if (part.startsWith('[') && part.endsWith(']')) {
-                    return <span key={i} className="font-bold text-orange-600 dark:text-orange-400 border-2 border-orange-500 rounded-full px-2 py-0.5 mx-1 inline-block">{part.slice(1, -1)}</span>;
-                }
+                if (part.startsWith('{') && part.endsWith('}')) return <span key={i} className="font-bold text-emerald-600 dark:text-emerald-400 border-b-2 border-emerald-500 mx-1">{part.slice(1, -1)}</span>;
+                if (part.startsWith('[') && part.endsWith(']')) return <span key={i} className="font-bold text-orange-600 dark:text-orange-400 border-2 border-orange-500 rounded-full px-2 py-0.5 mx-1 inline-block">{part.slice(1, -1)}</span>;
                 return <span key={i}>{part}</span>;
             })}
         </span>
@@ -133,13 +206,11 @@ export default function ChapterDetail() {
   const getCategorizedWords = (text, columnIndex) => {
       if (!text) return [];
       const matches = text.match(/\{(.+?)\|(\d+)\}/g) || [];
-      return matches
-          .map(m => {
-              const content = m.slice(1, -1);
-              const [word, idx] = content.split('|');
-              return parseInt(idx) === columnIndex ? word : null;
-          })
-          .filter(Boolean);
+      return matches.map(m => {
+          const content = m.slice(1, -1);
+          const [word, idx] = content.split('|');
+          return parseInt(idx) === columnIndex ? word : null;
+      }).filter(Boolean);
   };
 
   const handleDownloadPDF = async () => {
@@ -149,11 +220,11 @@ export default function ChapterDetail() {
         const html2pdf = (await import("html2pdf.js")).default;
         const element = pdfRef.current;
         const opt = {
-          margin:       [0.5, 0.5, 0.5, 0.5],
-          filename:     `${chapter.title.replace(/\s+/g, '_')}_TextOnly.pdf`,
-          image:        { type: 'jpeg', quality: 0.98 },
-          html2canvas:  { scale: 2, useCORS: true },
-          jsPDF:        { unit: 'in', format: 'a4', orientation: 'portrait' }
+          margin: [0.5, 0.5, 0.5, 0.5],
+          filename: `${chapter.title.replace(/\s+/g, '_')}_TextOnly.pdf`,
+          image: { type: 'jpeg', quality: 0.98 },
+          html2canvas: { scale: 2, useCORS: true },
+          jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' }
         };
         await html2pdf().set(opt).from(element).save();
     } catch (err) {
@@ -194,10 +265,20 @@ export default function ChapterDetail() {
                     <h1 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100 truncate max-w-[200px] sm:max-w-md">{chapter.title}</h1>
                 </div>
             </div>
-            <button onClick={handleDownloadPDF} disabled={downloading} className="flex items-center gap-2 px-4 py-2 bg-zinc-900 dark:bg-white text-white dark:text-black text-xs font-bold rounded-full hover:opacity-90 transition-all disabled:opacity-50">
-                {downloading ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} />}
-                <span className="hidden sm:inline">{downloading ? "Generating..." : "Download PDF"}</span>
-            </button>
+            <div className="flex items-center gap-3">
+                {/* --- FLASHCARD BUTTON --- */}
+                {flashcardDeck.length > 0 && (
+                    <button onClick={() => setShowFlashcards(true)} className="flex items-center gap-2 px-4 py-2 bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-300 text-xs font-bold rounded-full hover:bg-indigo-100 dark:hover:bg-indigo-500/20 transition-all">
+                        <Zap size={14} className="fill-indigo-600 dark:fill-indigo-300"/>
+                        <span className="hidden sm:inline">Flashcards</span>
+                    </button>
+                )}
+
+                <button onClick={handleDownloadPDF} disabled={downloading} className="flex items-center gap-2 px-4 py-2 bg-zinc-900 dark:bg-white text-white dark:text-black text-xs font-bold rounded-full hover:opacity-90 transition-all disabled:opacity-50">
+                    {downloading ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} />}
+                    <span className="hidden sm:inline">{downloading ? "Generating..." : "Download PDF"}</span>
+                </button>
+            </div>
         </div>
       </header>
 
@@ -229,7 +310,7 @@ export default function ChapterDetail() {
                         </div>
                     </div>
 
-                    {/* 1. Paragraphs Section */}
+                    {/* 1. Paragraphs Section (INTERACTIVE) */}
                     <div className="space-y-6 mb-12">
                         {unit.paragraphs.map((para, pIndex) => (
                             <div key={pIndex} className="group relative bg-white dark:bg-zinc-900/40 border border-zinc-200 dark:border-zinc-800 rounded-2xl overflow-hidden hover:border-zinc-300 dark:hover:border-zinc-700 transition-all duration-300 shadow-sm">
@@ -237,7 +318,7 @@ export default function ChapterDetail() {
                                 <div className="grid md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-zinc-100 dark:divide-zinc-800/50">
                                     <div className="p-8 pt-12 md:pt-8 relative">
                                         <div className="absolute top-4 right-4 flex items-center gap-2"><span className="text-[10px] font-bold text-zinc-400 dark:text-zinc-500 uppercase">English</span><span className="w-1.5 h-1.5 bg-indigo-500 rounded-full"></span></div>
-                                        <p className="text-lg md:text-xl text-zinc-900 dark:text-zinc-100 leading-relaxed font-serif max-w-prose">{para.english}</p>
+                                        <InteractiveText text={para.english} onWordClick={handleWordClick} />
                                     </div>
                                     <div className="p-8 pt-12 md:pt-8 bg-zinc-50/50 dark:bg-black/20 relative">
                                         <div className="absolute top-4 right-4 flex items-center gap-2"><span className="text-[10px] font-bold text-zinc-400 dark:text-zinc-500 uppercase">Bengali</span><span className="w-1.5 h-1.5 bg-emerald-500 rounded-full"></span></div>
@@ -251,219 +332,83 @@ export default function ChapterDetail() {
                     {/* 2. Collapsible Activities Section */}
                     {unit.activities?.length > 0 && (
                         <div className="border border-zinc-200 dark:border-zinc-800 rounded-2xl overflow-hidden bg-white/50 dark:bg-zinc-900/20 backdrop-blur-sm transition-colors mb-12">
-
                             {/* Trigger */}
-                            <button
-                                onClick={() => toggleActivitySection(uIndex)}
-                                className="w-full flex items-center justify-between p-6 hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors group"
-                            >
+                            <button onClick={() => toggleActivitySection(uIndex)} className="w-full flex items-center justify-between p-6 hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors group">
                                 <div className="flex items-center gap-4">
-                                    <div className={`p-2.5 rounded-xl transition-colors ${expandedActivities[uIndex] ? 'bg-indigo-100 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400' : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-500'}`}>
-                                        <CheckCircle2 size={20} />
-                                    </div>
+                                    <div className={`p-2.5 rounded-xl transition-colors ${expandedActivities[uIndex] ? 'bg-indigo-100 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400' : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-500'}`}><CheckCircle2 size={20} /></div>
                                     <div className="text-left">
                                         <h3 className={`text-base font-bold transition-colors ${expandedActivities[uIndex] ? 'text-indigo-900 dark:text-indigo-100' : 'text-zinc-900 dark:text-zinc-100'}`}>Practice Activities</h3>
                                         <p className="text-xs text-zinc-500">{unit.activities.length} activity sets available</p>
                                     </div>
                                 </div>
-                                <div className={`p-2 rounded-full transition-all ${expandedActivities[uIndex] ? 'rotate-180 bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-white' : 'text-zinc-400 group-hover:text-zinc-600'}`}>
-                                    <ChevronDown size={18} />
-                                </div>
+                                <div className={`p-2 rounded-full transition-all ${expandedActivities[uIndex] ? 'rotate-180 bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-white' : 'text-zinc-400 group-hover:text-zinc-600'}`}><ChevronDown size={18} /></div>
                             </button>
 
                             {/* Content */}
                             <AnimatePresence>
                                 {expandedActivities[uIndex] && (
-                                    <motion.div
-                                        initial={{ height: 0, opacity: 0 }}
-                                        animate={{ height: "auto", opacity: 1 }}
-                                        exit={{ height: 0, opacity: 0 }}
-                                        transition={{ duration: 0.3, ease: "easeInOut" }}
-                                    >
+                                    <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.3, ease: "easeInOut" }}>
                                         <div className="p-6 pt-0 space-y-8 border-t border-zinc-200 dark:border-zinc-800/50">
                                             <div className="h-2"></div>
                                             <div className="grid gap-8">
                                                 {unit.activities.map((act, actIdx) => {
                                                     const isRevealed = revealedAnswers[`${uIndex}-${actIdx}`];
-                                                    const categoryHeaders = act.columnHeaders && act.columnHeaders.length > 0
-                                                        ? act.columnHeaders
-                                                        : (act.questions?.[0]?.options || ["Column 1", "Column 2"]);
+                                                    const categoryHeaders = act.columnHeaders && act.columnHeaders.length > 0 ? act.columnHeaders : (act.questions?.[0]?.options || ["Column 1", "Column 2"]);
+                                                    const relatedGrammar = findRelatedGrammar(act);
 
                                                     return (
                                                         <div key={actIdx} className="bg-white dark:bg-zinc-900/40 border border-zinc-200 dark:border-zinc-800 rounded-2xl overflow-hidden shadow-sm">
-
                                                             {/* Activity Header */}
                                                             <div className="p-5 border-b border-zinc-100 dark:border-zinc-800 flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-zinc-50/50 dark:bg-zinc-900/50">
-                                                                <div>
-                                                                    <div className="flex items-center gap-2 mb-1">
-                                                                        <ActivityIcon type={act.type} />
-                                                                        <span className="text-xs font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wide">{act.type.replace('_', ' ')}</span>
+                                                                <div className="flex-1">
+                                                                    <div className="flex flex-wrap items-center gap-3 mb-1">
+                                                                        <div className="flex items-center gap-2">
+                                                                            <ActivityIcon type={act.type} />
+                                                                            <span className="text-xs font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wide">{act.type.replace('_', ' ')}</span>
+                                                                        </div>
+                                                                        {relatedGrammar && (
+                                                                            <Link href={`/grammar/${relatedGrammar._id}`} className="group flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-indigo-50 dark:bg-indigo-500/10 border border-indigo-200 dark:border-indigo-500/30 text-[10px] font-bold text-indigo-600 dark:text-indigo-400 hover:bg-indigo-100 transition-colors">
+                                                                                <Lightbulb size={10} className="text-indigo-500"/>
+                                                                                <span>Review: {relatedGrammar.topic}</span>
+                                                                                <ExternalLink size={10} className="opacity-50 group-hover:opacity-100"/>
+                                                                            </Link>
+                                                                        )}
                                                                     </div>
                                                                     <p className="text-sm text-zinc-800 dark:text-zinc-200 font-medium">{act.instruction}</p>
                                                                 </div>
-                                                                <button
-                                                                    onClick={() => toggleReveal(uIndex, actIdx)}
-                                                                    className="flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium border border-zinc-200 dark:border-zinc-700 hover:bg-white dark:hover:bg-zinc-800 transition-colors text-zinc-600 dark:text-zinc-400"
-                                                                >
+                                                                <button onClick={() => toggleReveal(uIndex, actIdx)} className="flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium border border-zinc-200 dark:border-zinc-700 hover:bg-white dark:hover:bg-zinc-800 transition-colors text-zinc-600 dark:text-zinc-400 whitespace-nowrap">
                                                                     {isRevealed ? <EyeOff size={14}/> : <Eye size={14}/>}
                                                                     {isRevealed ? "Hide Answers" : "Show Answers"}
                                                                 </button>
                                                             </div>
 
-                                                            {/* WORD BOX */}
+                                                            {/* Activity Content (Same as before) */}
                                                             {act.type === 'WORD_BOX' && act.questions?.[0]?.options?.length > 0 && (
                                                                 <div className="p-4 border-b border-zinc-100 dark:border-zinc-800 bg-indigo-50/30 dark:bg-indigo-900/10">
-                                                                    <p className="text-[10px] font-bold text-indigo-400 uppercase mb-2 flex items-center gap-1">
-                                                                        <BoxSelect size={12}/> Word Bank:
-                                                                    </p>
-                                                                    <div className="flex flex-wrap gap-2">
-                                                                        {act.questions[0].options.map((word, wIdx) => (
-                                                                            <span key={wIdx} className="px-3 py-1.5 bg-white dark:bg-zinc-800 border border-indigo-100 dark:border-indigo-500/20 rounded-lg text-sm text-indigo-700 dark:text-indigo-300 font-medium shadow-sm select-none">
-                                                                                {word}
-                                                                            </span>
-                                                                        ))}
-                                                                    </div>
+                                                                    <p className="text-[10px] font-bold text-indigo-400 uppercase mb-2 flex items-center gap-1"><BoxSelect size={12}/> Word Bank:</p>
+                                                                    <div className="flex flex-wrap gap-2">{act.questions[0].options.map((word, wIdx) => (<span key={wIdx} className="px-3 py-1.5 bg-white dark:bg-zinc-800 border border-indigo-100 dark:border-indigo-500/20 rounded-lg text-sm text-indigo-700 dark:text-indigo-300 font-medium shadow-sm select-none">{word}</span>))}</div>
                                                                 </div>
                                                             )}
-
-                                                            {act.type === 'CHART_FILL' && (
-                                                                <div className="overflow-x-auto rounded-lg border border-zinc-200 dark:border-zinc-800 m-6">
-                                                                    <table className="w-full min-w-[500px] text-sm text-left">
-                                                                        <thead className="bg-zinc-100 dark:bg-zinc-800 text-xs uppercase text-zinc-500 font-bold">
-                                                                            <tr>
-                                                                                {(act.columnHeaders || []).map((h, i) => (
-                                                                                    <th key={i} className="px-4 py-3 border-b border-zinc-200 dark:border-zinc-700 border-r last:border-r-0 border-zinc-200 dark:border-zinc-700">{h}</th>
-                                                                                ))}
-                                                                            </tr>
-                                                                        </thead>
-                                                                        <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800">
-                                                                            {act.questions.map((q, qIdx) => (
-                                                                                <tr key={qIdx} className="bg-white dark:bg-zinc-900/50">
-                                                                                    {(q.options || []).map((cellData, colIdx) => {
-                                                                                        const { isInput, answer, content } = getChartParts(cellData);
-                                                                                        return (
-                                                                                            <td key={colIdx} className="p-3 border-r last:border-r-0 border-zinc-100 dark:border-zinc-800 align-top">
-                                                                                                {isInput ? (
-                                                                                                    <div className="relative">
-                                                                                                        {isRevealed ? (
-                                                                                                            <div className="px-3 py-2 rounded bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 font-bold border border-emerald-100 dark:border-emerald-800">
-                                                                                                                {answer}
-                                                                                                            </div>
-                                                                                                        ) : (
-                                                                                                            <input
-                                                                                                                className="w-full bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded px-3 py-2 outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all placeholder:text-zinc-400"
-                                                                                                                placeholder="Type answer..."
-                                                                                                            />
-                                                                                                        )}
-                                                                                                    </div>
-                                                                                                ) : (
-                                                                                                    <span className="text-zinc-700 dark:text-zinc-300 font-medium">{content}</span>
-                                                                                                )}
-                                                                                            </td>
-                                                                                        );
-                                                                                    })}
-                                                                                </tr>
-                                                                            ))}
-                                                                        </tbody>
-                                                                    </table>
-                                                                </div>
-                                                            )}
-
-                                                            {/* CAUSE EFFECT HEADER */}
-                                                            {act.type === 'CAUSE_EFFECT' && (
-                                                                <div className="grid grid-cols-2 bg-lime-50 dark:bg-lime-900/10 border-b border-lime-100 dark:border-lime-900/20">
-                                                                    <div className="p-3 text-xs font-bold text-center text-lime-800 dark:text-lime-400 border-r border-lime-100 dark:border-lime-900/20 uppercase tracking-widest">
-                                                                        {act.columnHeaders?.[0] || "Cause"}
-                                                                    </div>
-                                                                    <div className="p-3 text-xs font-bold text-center text-lime-800 dark:text-lime-400 uppercase tracking-widest">
-                                                                        {act.columnHeaders?.[1] || "Effect"}
-                                                                    </div>
-                                                                </div>
-                                                            )}
-
-                                                            {/* Questions Body */}
+                                                            {act.type === 'CHART_FILL' && (<div className="overflow-x-auto rounded-lg border border-zinc-200 dark:border-zinc-800 m-6"><table className="w-full min-w-[500px] text-sm text-left"><thead className="bg-zinc-100 dark:bg-zinc-800 text-xs uppercase text-zinc-500 font-bold"><tr>{(act.columnHeaders || []).map((h, i) => (<th key={i} className="px-4 py-3 border-b border-zinc-200 dark:border-zinc-700 border-r last:border-r-0 border-zinc-200 dark:border-zinc-700">{h}</th>))}</tr></thead><tbody className="divide-y divide-zinc-100 dark:divide-zinc-800">{act.questions.map((q, qIdx) => (<tr key={qIdx} className="bg-white dark:bg-zinc-900/50">{(q.options || []).map((cellData, colIdx) => { const { isInput, answer, content } = getChartParts(cellData); return (<td key={colIdx} className="p-3 border-r last:border-r-0 border-zinc-100 dark:border-zinc-800 align-top">{isInput ? (<div className="relative">{isRevealed ? (<div className="px-3 py-2 rounded bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 font-bold border border-emerald-100 dark:border-emerald-800">{answer}</div>) : (<input className="w-full bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded px-3 py-2 outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all placeholder:text-zinc-400" placeholder="Type answer..."/>)}</div>) : (<span className="text-zinc-700 dark:text-zinc-300 font-medium">{content}</span>)}</td>); })}</tr>))}</tbody></table></div>)}
+                                                            {act.type === 'CAUSE_EFFECT' && (<div className="grid grid-cols-2 bg-lime-50 dark:bg-lime-900/10 border-b border-lime-100 dark:border-lime-900/20"><div className="p-3 text-xs font-bold text-center text-lime-800 dark:text-lime-400 border-r border-lime-100 dark:border-lime-900/20 uppercase tracking-widest">{act.columnHeaders?.[0] || "Cause"}</div><div className="p-3 text-xs font-bold text-center text-lime-800 dark:text-lime-400 uppercase tracking-widest">{act.columnHeaders?.[1] || "Effect"}</div></div>)}
                                                             <div className="p-6 space-y-6">
-
-                                                                {/* --- CAUSE EFFECT TABLE --- */}
                                                                 {act.type === 'CAUSE_EFFECT' ? (
                                                                     <div className="space-y-0 divide-y divide-zinc-100 dark:divide-zinc-800 border border-zinc-100 dark:border-zinc-800 rounded-lg overflow-hidden">
-                                                                         {act.questions.map((q, qIdx) => {
-                                                                             const hideLeft = q.options && q.options[0] === 'CAUSE';
-                                                                             const hideRight = q.options && q.options[0] === 'EFFECT';
-
-                                                                             return (
-                                                                                 <div key={qIdx} className="grid grid-cols-2">
-                                                                                     <div className="p-4 text-sm border-r border-zinc-100 dark:border-zinc-800 bg-white/50 dark:bg-zinc-900/50">
-                                                                                         {hideLeft ? (
-                                                                                             isRevealed ? <span className="font-bold text-emerald-600 dark:text-emerald-400">{q.leftItem}</span> : <div className="flex justify-center"><div className="h-6 w-16 bg-zinc-100 dark:bg-zinc-800 rounded border border-zinc-200 dark:border-zinc-700 flex items-center justify-center text-zinc-400 text-xs">?</div></div>
-                                                                                         ) : <span className="text-zinc-700 dark:text-zinc-300">{q.leftItem}</span>}
-                                                                                     </div>
-                                                                                     <div className="p-4 text-sm bg-white/50 dark:bg-zinc-900/50">
-                                                                                         {hideRight ? (
-                                                                                             isRevealed ? <span className="font-bold text-emerald-600 dark:text-emerald-400">{q.rightItem}</span> : <div className="flex justify-center"><div className="h-6 w-16 bg-zinc-100 dark:bg-zinc-800 rounded border border-zinc-200 dark:border-zinc-700 flex items-center justify-center text-zinc-400 text-xs">?</div></div>
-                                                                                         ) : <span className="text-zinc-700 dark:text-zinc-300">{q.rightItem}</span>}
-                                                                                     </div>
-                                                                                 </div>
-                                                                             );
-                                                                         })}
+                                                                         {act.questions.map((q, qIdx) => { const hideLeft = q.options && q.options[0] === 'CAUSE'; const hideRight = q.options && q.options[0] === 'EFFECT'; return (<div key={qIdx} className="grid grid-cols-2"><div className="p-4 text-sm border-r border-zinc-100 dark:border-zinc-800 bg-white/50 dark:bg-zinc-900/50">{hideLeft ? (isRevealed ? <span className="font-bold text-emerald-600 dark:text-emerald-400">{q.leftItem}</span> : <div className="flex justify-center"><div className="h-6 w-16 bg-zinc-100 dark:bg-zinc-800 rounded border border-zinc-200 dark:border-zinc-700 flex items-center justify-center text-zinc-400 text-xs">?</div></div>) : <span className="text-zinc-700 dark:text-zinc-300">{q.leftItem}</span>}</div><div className="p-4 text-sm bg-white/50 dark:bg-zinc-900/50">{hideRight ? (isRevealed ? <span className="font-bold text-emerald-600 dark:text-emerald-400">{q.rightItem}</span> : <div className="flex justify-center"><div className="h-6 w-16 bg-zinc-100 dark:bg-zinc-800 rounded border border-zinc-200 dark:border-zinc-700 flex items-center justify-center text-zinc-400 text-xs">?</div></div>) : <span className="text-zinc-700 dark:text-zinc-300">{q.rightItem}</span>}</div></div>); })}
                                                                     </div>
                                                                 ) : (
-                                                                    /* --- ALL OTHER TYPES --- */
                                                                     act.questions.map((q, qIdx) => (
-                                                                        <div key={qIdx} className="relative">
-                                                                            <div className="flex gap-4">
-                                                                                <span className="text-sm font-bold text-zinc-400 font-mono mt-0.5">{qIdx + 1}.</span>
-                                                                                <div className="w-full">
-
-                                                                                    {/* Question Text */}
-                                                                                    {!['MATCHING', 'UNDERLINE', 'UNDERLINE_CIRCLE', 'CATEGORIZE', 'CAUSE_EFFECT', 'CHART_FILL'].includes(act.type) && q.text && (
-                                                                                        <p className="text-base text-zinc-800 dark:text-zinc-100 mb-3 leading-snug">{cleanText(q.text)}</p>
-                                                                                    )}
-
-                                                                                    {/* --- CATEGORIZE TABLE --- */}
-                                                                                    {act.type === 'CATEGORIZE' && (
-                                                                                        <div className="space-y-4">
-                                                                                            <p className="text-base text-zinc-800 dark:text-zinc-100 mb-1 leading-snug">{cleanText(q.text)}</p>
-                                                                                            {isRevealed && (
-                                                                                                <div className="mt-2 border border-zinc-200 dark:border-zinc-700 rounded-lg overflow-hidden">
-                                                                                                    <div className="grid bg-zinc-50 dark:bg-zinc-800/50 border-b border-zinc-200 dark:border-zinc-700" style={{ gridTemplateColumns: `repeat(${categoryHeaders.length}, 1fr)` }}>
-                                                                                                        {categoryHeaders.map((header, hIdx) => (<div key={hIdx} className="p-3 text-xs font-bold text-center text-zinc-600 dark:text-zinc-300 border-r border-zinc-200 dark:border-zinc-700 last:border-0 uppercase tracking-wider">{header}</div>))}
-                                                                                                    </div>
-                                                                                                    <div className="grid bg-white dark:bg-zinc-900/30" style={{ gridTemplateColumns: `repeat(${categoryHeaders.length}, 1fr)` }}>
-                                                                                                        {categoryHeaders.map((_, hIdx) => (
-                                                                                                            <div key={hIdx} className="p-3 text-sm text-center border-r border-zinc-200 dark:border-zinc-700 last:border-0 min-h-[40px]">
-                                                                                                                {getCategorizedWords(q.text, hIdx).map((word, wIdx) => (<span key={wIdx} className="block mb-1 text-emerald-600 dark:text-emerald-400 font-medium">{word}</span>))}
-                                                                                                            </div>
-                                                                                                        ))}
-                                                                                                    </div>
-                                                                                                </div>
-                                                                                            )}
-                                                                                        </div>
-                                                                                    )}
-
-                                                                                    {/* --- UNDERLINE --- */}
-                                                                                    {act.type === 'UNDERLINE' && (<div className="space-y-3"><p className="text-base text-zinc-800 dark:text-zinc-100 mb-1 leading-snug">{cleanText(q.text)}</p>{isRevealed && (<div className="p-3 rounded-lg border bg-emerald-50/50 dark:bg-emerald-900/10 border-emerald-100 dark:border-emerald-800/30"><div className="flex items-center gap-2 text-[10px] font-bold text-emerald-600 uppercase mb-2"><CheckCircle2 size={12}/> Correct Answer:</div><div className="text-sm text-zinc-700 dark:text-zinc-300">{renderUnderlineAnswer(q.text)}</div></div>)}</div>)}
-
-                                                                                    {/* --- UNDERLINE CIRCLE --- */}
-                                                                                    {act.type === 'UNDERLINE_CIRCLE' && (<div className="space-y-3"><p className="text-base text-zinc-800 dark:text-zinc-100 mb-1 leading-snug">{cleanText(q.text)}</p>{isRevealed && (<div className="p-4 rounded-lg border bg-slate-50 dark:bg-slate-900/20 border-slate-100 dark:border-slate-800/50"><div className="flex items-center gap-2 text-[10px] font-bold text-slate-500 uppercase mb-3"><CheckCircle2 size={12}/> Solution:</div><div className="text-base text-zinc-800 dark:text-zinc-200">{renderUnderlineCircleAnswer(q.text)}</div></div>)}</div>)}
-
-                                                                                    {/* --- MCQ --- */}
-                                                                                    {act.type === 'MCQ' && (<div className="grid grid-cols-1 sm:grid-cols-2 gap-3">{q.options?.map((opt, oIdx) => (<div key={oIdx} className={`px-4 py-3 rounded-lg text-sm border transition-all ${isRevealed && opt === q.correctAnswer ? 'bg-emerald-50 dark:bg-emerald-900/20 border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300 font-medium' : 'bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 text-zinc-600 dark:text-zinc-400'}`}><span className="font-mono text-xs mr-2 opacity-50">{String.fromCharCode(97 + oIdx)})</span>{opt}</div>))}</div>)}
-
-                                                                                    {/* --- REARRANGE --- */}
-                                                                                    {act.type === 'REARRANGE' && (<div className="space-y-2">{!isRevealed ? ([...q.options].sort().map((opt, i) => (<div key={i} className="flex gap-3 items-start p-3 bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-100 dark:border-zinc-800 rounded-lg"><span className="text-xs font-bold text-zinc-400 w-4 pt-0.5">{String.fromCharCode(65+i)}.</span><p className="text-sm text-zinc-600 dark:text-zinc-400">{opt}</p></div>))) : (q.options.map((opt, i) => (<div key={i} className="flex gap-3 items-start p-3 bg-emerald-50 dark:bg-emerald-900/10 border border-emerald-100 dark:border-emerald-800/30 rounded-lg"><span className="text-xs font-bold text-emerald-600 w-4 pt-0.5">{i+1}.</span><p className="text-sm text-zinc-800 dark:text-zinc-200 font-medium">{opt}</p></div>)))}</div>)}
-
-                                                                                    {/* --- MATCHING --- */}
-                                                                                    {act.type === 'MATCHING' && (<div className="flex items-center justify-between p-4 rounded-lg bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-100 dark:border-zinc-800"><span className="text-sm text-zinc-700 dark:text-zinc-300 font-medium">{q.leftItem}</span><div className="flex items-center gap-2 px-4"><div className="h-px w-8 bg-zinc-300 dark:bg-zinc-700"></div>{isRevealed ? <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/20 px-2 py-1 rounded">Matches</span> : <div className="w-2 h-2 rounded-full bg-zinc-300 dark:bg-zinc-700"></div>}<div className="h-px w-8 bg-zinc-300 dark:bg-zinc-700"></div></div><span className={`text-sm font-medium ${isRevealed ? 'text-zinc-900 dark:text-white' : 'blur-sm text-zinc-400 select-none'}`}>{q.rightItem}</span></div>)}
-
-                                                                                    {/* --- TRUE/FALSE --- */}
-                                                                                    {act.type === 'TRUE_FALSE' && (<div className="flex flex-col gap-2"><div className="flex gap-2">{isRevealed && <span className={`text-xs font-bold px-2 py-1 rounded ${q.isTrue ? 'bg-emerald-100 text-emerald-800' : 'bg-red-100 text-red-800'}`}>{q.isTrue ? 'TRUE' : 'FALSE'}</span>}</div>{q.supportingStatement && isRevealed && <p className="text-sm text-zinc-500 italic mt-1 border-l-2 border-zinc-300 pl-3">"{q.supportingStatement}"</p>}</div>)}
-
-                                                                                    {/* --- FILL BLANKS / QA --- */}
-                                                                                    {(act.type === 'FILL_BLANKS' || act.type === 'QA' || act.type === 'WORD_BOX') && isRevealed && (<div className="mt-2 p-3 bg-emerald-50 dark:bg-emerald-900/10 border border-emerald-100 dark:border-emerald-800/30 rounded-lg"><p className="text-sm text-emerald-800 dark:text-emerald-300"><span className="font-bold mr-2">Answer:</span> {q.correctAnswer}</p></div>)}
-                                                                                </div>
-                                                                            </div>
-                                                                        </div>
+                                                                        <div key={qIdx} className="relative"><div className="flex gap-4"><span className="text-sm font-bold text-zinc-400 font-mono mt-0.5">{qIdx + 1}.</span><div className="w-full">
+                                                                            {!['MATCHING', 'UNDERLINE', 'UNDERLINE_CIRCLE', 'CATEGORIZE', 'CAUSE_EFFECT', 'CHART_FILL'].includes(act.type) && q.text && (<p className="text-base text-zinc-800 dark:text-zinc-100 mb-3 leading-snug">{cleanText(q.text)}</p>)}
+                                                                            {act.type === 'CATEGORIZE' && (<div className="space-y-4"><p className="text-base text-zinc-800 dark:text-zinc-100 mb-1 leading-snug">{cleanText(q.text)}</p>{isRevealed && (<div className="mt-2 border border-zinc-200 dark:border-zinc-700 rounded-lg overflow-hidden"><div className="grid bg-zinc-50 dark:bg-zinc-800/50 border-b border-zinc-200 dark:border-zinc-700" style={{ gridTemplateColumns: `repeat(${categoryHeaders.length}, 1fr)` }}>{categoryHeaders.map((header, hIdx) => (<div key={hIdx} className="p-3 text-xs font-bold text-center text-zinc-600 dark:text-zinc-300 border-r border-zinc-200 dark:border-zinc-700 last:border-0 uppercase tracking-wider">{header}</div>))}</div><div className="grid bg-white dark:bg-zinc-900/30" style={{ gridTemplateColumns: `repeat(${categoryHeaders.length}, 1fr)` }}>{categoryHeaders.map((_, hIdx) => (<div key={hIdx} className="p-3 text-sm text-center border-r border-zinc-200 dark:border-zinc-700 last:border-0 min-h-[40px]">{getCategorizedWords(q.text, hIdx).map((word, wIdx) => (<span key={wIdx} className="block mb-1 text-emerald-600 dark:text-emerald-400 font-medium">{word}</span>))}</div>))}</div></div>)}</div>)}
+                                                                            {act.type === 'UNDERLINE' && (<div className="space-y-3"><p className="text-base text-zinc-800 dark:text-zinc-100 mb-1 leading-snug">{cleanText(q.text)}</p>{isRevealed && (<div className="p-3 rounded-lg border bg-emerald-50/50 dark:bg-emerald-900/10 border-emerald-100 dark:border-emerald-800/30"><div className="flex items-center gap-2 text-[10px] font-bold text-emerald-600 uppercase mb-2"><CheckCircle2 size={12}/> Correct Answer:</div><div className="text-sm text-zinc-700 dark:text-zinc-300">{renderUnderlineAnswer(q.text)}</div></div>)}</div>)}
+                                                                            {act.type === 'UNDERLINE_CIRCLE' && (<div className="space-y-3"><p className="text-base text-zinc-800 dark:text-zinc-100 mb-1 leading-snug">{cleanText(q.text)}</p>{isRevealed && (<div className="p-4 rounded-lg border bg-slate-50 dark:bg-slate-900/20 border-slate-100 dark:border-slate-800/50"><div className="flex items-center gap-2 text-[10px] font-bold text-slate-500 uppercase mb-3"><CheckCircle2 size={12}/> Solution:</div><div className="text-base text-zinc-800 dark:text-zinc-200">{renderUnderlineCircleAnswer(q.text)}</div></div>)}</div>)}
+                                                                            {act.type === 'MCQ' && (<div className="grid grid-cols-1 sm:grid-cols-2 gap-3">{q.options?.map((opt, oIdx) => (<div key={oIdx} className={`px-4 py-3 rounded-lg text-sm border transition-all ${isRevealed && opt === q.correctAnswer ? 'bg-emerald-50 dark:bg-emerald-900/20 border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300 font-medium' : 'bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 text-zinc-600 dark:text-zinc-400'}`}><span className="font-mono text-xs mr-2 opacity-50">{String.fromCharCode(97 + oIdx)})</span>{opt}</div>))}</div>)}
+                                                                            {act.type === 'REARRANGE' && (<div className="space-y-2">{!isRevealed ? ([...q.options].sort().map((opt, i) => (<div key={i} className="flex gap-3 items-start p-3 bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-100 dark:border-zinc-800 rounded-lg"><span className="text-xs font-bold text-zinc-400 w-4 pt-0.5">{String.fromCharCode(65+i)}.</span><p className="text-sm text-zinc-600 dark:text-zinc-400">{opt}</p></div>))) : (q.options.map((opt, i) => (<div key={i} className="flex gap-3 items-start p-3 bg-emerald-50 dark:bg-emerald-900/10 border border-emerald-100 dark:border-emerald-800/30 rounded-lg"><span className="text-xs font-bold text-emerald-600 w-4 pt-0.5">{i+1}.</span><p className="text-sm text-zinc-800 dark:text-zinc-200 font-medium">{opt}</p></div>)))}</div>)}
+                                                                            {act.type === 'MATCHING' && (<div className="flex items-center justify-between p-4 rounded-lg bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-100 dark:border-zinc-800"><span className="text-sm text-zinc-700 dark:text-zinc-300 font-medium">{q.leftItem}</span><div className="flex items-center gap-2 px-4"><div className="h-px w-8 bg-zinc-300 dark:bg-zinc-700"></div>{isRevealed ? <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/20 px-2 py-1 rounded">Matches</span> : <div className="w-2 h-2 rounded-full bg-zinc-300 dark:bg-zinc-700"></div>}<div className="h-px w-8 bg-zinc-300 dark:bg-zinc-700"></div></div><span className={`text-sm font-medium ${isRevealed ? 'text-zinc-900 dark:text-white' : 'blur-sm text-zinc-400 select-none'}`}>{q.rightItem}</span></div>)}
+                                                                            {act.type === 'TRUE_FALSE' && (<div className="flex flex-col gap-2"><div className="flex gap-2">{isRevealed && <span className={`text-xs font-bold px-2 py-1 rounded ${q.isTrue ? 'bg-emerald-100 text-emerald-800' : 'bg-red-100 text-red-800'}`}>{q.isTrue ? 'TRUE' : 'FALSE'}</span>}</div>{q.supportingStatement && isRevealed && <p className="text-sm text-zinc-500 italic mt-1 border-l-2 border-zinc-300 pl-3">"{q.supportingStatement}"</p>}</div>)}
+                                                                            {(act.type === 'FILL_BLANKS' || act.type === 'QA' || act.type === 'WORD_BOX') && isRevealed && (<div className="mt-2 p-3 bg-emerald-50 dark:bg-emerald-900/10 border border-emerald-100 dark:border-emerald-800/30 rounded-lg"><p className="text-sm text-emerald-800 dark:text-emerald-300"><span className="font-bold mr-2">Answer:</span> {q.correctAnswer}</p></div>)}
+                                                                        </div></div></div>
                                                                     ))
                                                                 )}
                                                             </div>
@@ -488,183 +433,27 @@ export default function ChapterDetail() {
                             <div className="space-y-12">
                                 {unit.writings.map((write, wIdx) => (
                                     <div key={wIdx} className="bg-white dark:bg-zinc-900/40 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-6 sm:p-8 shadow-sm relative overflow-hidden">
-
-                                        {/* Decorative Background Blob */}
                                         <div className="absolute -top-10 -right-10 w-32 h-32 bg-rose-500/5 rounded-full blur-3xl" />
-
                                         <div className="mb-6 relative z-10">
                                             <span className="inline-block px-3 py-1 rounded-full bg-rose-50 dark:bg-rose-900/20 text-rose-600 dark:text-rose-400 text-[10px] font-bold tracking-wider uppercase mb-3 border border-rose-100 dark:border-rose-900/30">{write.type.replace(/_/g, ' ')}</span>
                                             <h4 className="text-lg font-bold text-zinc-900 dark:text-zinc-100 leading-snug">{write.question}</h4>
                                         </div>
-
+                                        {/* ... Writing content (same as previous) ... */}
                                         {write.type === 'DIALOGUE' ? (
-        <div className="space-y-6">
-            {/* Context Card */}
-            {(write.data?.characters?.length > 0 || write.data?.setting) && (
-                <div className="flex flex-wrap gap-4 p-4 bg-indigo-50/50 dark:bg-indigo-900/10 rounded-xl border border-indigo-100 dark:border-indigo-800/30">
-                    {write.data.setting && (
-                        <div className="flex items-center gap-2 text-xs font-medium text-indigo-800 dark:text-indigo-300">
-                            <MapPin size={14} className="text-indigo-500"/>
-                            <span>{write.data.setting}</span>
-                        </div>
-                    )}
-                    {write.data.characters && (
-                         <div className="flex items-center gap-2 text-xs font-medium text-indigo-800 dark:text-indigo-300">
-                            <Users size={14} className="text-indigo-500"/>
-                            <span>{write.data.characters.join(' & ')}</span>
-                        </div>
-                    )}
-                </div>
-            )}
-
-            {/* Model Answer (Script View) */}
-            {write.modelAnswer && (
-                <AnimatePresence>
-                    {revealedAnswers[`${uIndex}-write-${wIdx}`] && (
-                        <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden">
-                            <div className="mt-4 p-6 bg-zinc-50 dark:bg-zinc-800/30 border-l-4 border-indigo-400 rounded-r-lg">
-                                {renderDialogueScript(write.modelAnswer)}
-                            </div>
-                        </motion.div>
-                    )}
-                </AnimatePresence>
-            )}
-        </div>
-    ) : write.type === 'SUMMARY' ? (
-        // --- NEW: SUMMARY RENDERER ---
-        <div className="space-y-6">
-
-            {/* The Passage Card */}
-            {write.data?.passage && (
-                <div className="p-6 bg-zinc-50 dark:bg-zinc-800/30 rounded-xl border border-zinc-200 dark:border-zinc-700/50 shadow-sm relative group">
-                    <div className="absolute top-0 right-0 px-3 py-1 bg-zinc-200 dark:bg-zinc-700 rounded-bl-xl text-[10px] font-bold text-zinc-500 uppercase tracking-widest">
-                        Passage
-                    </div>
-                    <p className="text-sm md:text-base leading-relaxed font-serif text-zinc-800 dark:text-zinc-200 whitespace-pre-wrap">
-                        {write.data.passage}
-                    </p>
-                </div>
-            )}
-
-            {/* Word Limit Tag */}
-            {write.data?.wordLimit && (
-                <div className="flex justify-end">
-                    <span className="text-xs font-mono text-zinc-400 bg-zinc-100 dark:bg-zinc-800 px-2 py-1 rounded">
-                        Limit: {write.data.wordLimit}
-                    </span>
-                </div>
-            )}
-
-            {/* Model Answer (The Summary) */}
-            {write.modelAnswer && (
-                <AnimatePresence>
-                    {revealedAnswers[`${uIndex}-write-${wIdx}`] && (
-                        <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden">
-                            <div className="mt-2 p-6 bg-emerald-50/50 dark:bg-emerald-900/10 border-l-4 border-emerald-400 rounded-r-lg">
-                                <h5 className="text-xs font-bold text-emerald-600 dark:text-emerald-400 uppercase mb-2">Summary Model Answer:</h5>
-                                <p className="whitespace-pre-wrap text-sm leading-relaxed text-zinc-800 dark:text-zinc-200">
-                                    {write.modelAnswer}
-                                </p>
-                            </div>
-                        </motion.div>
-                    )}
-                </AnimatePresence>
-            )}
-        </div>
-    )
-
-                                        : write.type === 'INFORMAL_LETTER' && revealedAnswers[`${uIndex}-write-${wIdx}`] ? (
+                                            <div className="space-y-6">{(write.data?.characters?.length > 0 || write.data?.setting) && (<div className="flex flex-wrap gap-4 p-4 bg-indigo-50/50 dark:bg-indigo-900/10 rounded-xl border border-indigo-100 dark:border-indigo-800/30">{write.data.setting && (<div className="flex items-center gap-2 text-xs font-medium text-indigo-800 dark:text-indigo-300"><MapPin size={14} className="text-indigo-500"/><span>{write.data.setting}</span></div>)}{write.data.characters && (<div className="flex items-center gap-2 text-xs font-medium text-indigo-800 dark:text-indigo-300"><Users size={14} className="text-indigo-500"/><span>{write.data.characters.join(' & ')}</span></div>)}</div>)}{write.modelAnswer && (<AnimatePresence>{revealedAnswers[`${uIndex}-write-${wIdx}`] && (<motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden"><div className="mt-4 p-6 bg-zinc-50 dark:bg-zinc-800/30 border-l-4 border-indigo-400 rounded-r-lg">{renderDialogueScript(write.modelAnswer)}</div></motion.div>)}</AnimatePresence>)}</div>
+                                        ) : write.type === 'SUMMARY' ? (
+                                            <div className="space-y-6">{write.data?.passage && (<div className="p-6 bg-zinc-50 dark:bg-zinc-800/30 rounded-xl border border-zinc-200 dark:border-zinc-700/50 shadow-sm relative group"><div className="absolute top-0 right-0 px-3 py-1 bg-zinc-200 dark:bg-zinc-700 rounded-bl-xl text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Passage</div><p className="text-sm md:text-base leading-relaxed font-serif text-zinc-800 dark:text-zinc-200 whitespace-pre-wrap">{write.data.passage}</p></div>)}{write.data?.wordLimit && (<div className="flex justify-end"><span className="text-xs font-mono text-zinc-400 bg-zinc-100 dark:bg-zinc-800 px-2 py-1 rounded">Limit: {write.data.wordLimit}</span></div>)}{write.modelAnswer && (<AnimatePresence>{revealedAnswers[`${uIndex}-write-${wIdx}`] && (<motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden"><div className="mt-2 p-6 bg-emerald-50/50 dark:bg-emerald-900/10 border-l-4 border-emerald-400 rounded-r-lg"><h5 className="text-xs font-bold text-emerald-600 dark:text-emerald-400 uppercase mb-2">Summary Model Answer:</h5><p className="whitespace-pre-wrap text-sm leading-relaxed text-zinc-800 dark:text-zinc-200">{write.modelAnswer}</p></div></motion.div>)}</AnimatePresence>)}</div>
+                                        ) : write.type === 'INFORMAL_LETTER' && revealedAnswers[`${uIndex}-write-${wIdx}`] ? (
                                             <div className="mt-8 bg-zinc-50 dark:bg-zinc-800/20 border border-zinc-200 dark:border-zinc-700/50 p-6 sm:p-10 rounded-xl font-serif text-sm leading-relaxed text-zinc-800 dark:text-zinc-200 shadow-inner">
-
-                                                {/* 1. Top Right: Sender Address & Date */}
-                                                <div className="flex flex-col items-end text-right mb-8 text-zinc-600 dark:text-zinc-400 text-xs sm:text-sm">
-                                                    {write.data?.senderAddress && (
-                                                        <div className="whitespace-pre-wrap mb-1">{write.data.senderAddress}</div>
-                                                    )}
-                                                    {write.data?.date && (
-                                                        <div className="font-bold">{write.data.date}</div>
-                                                    )}
-                                                </div>
-
-                                                {/* 2. Subject (if present) & Salutation */}
-                                                <div className="mb-6 space-y-2">
-                                                    {write.data?.subject && (
-                                                        <p className="font-bold underline text-zinc-900 dark:text-zinc-100">Subject: {write.data.subject}</p>
-                                                    )}
-                                                    {write.data?.salutation && (
-                                                        <p>{write.data.salutation}</p>
-                                                    )}
-                                                </div>
-
-                                                {/* 3. Main Body */}
-                                                <div className="whitespace-pre-wrap mb-12 text-justify">
-                                                    {write.modelAnswer}
-                                                </div>
-
-                                                {/* 4. Bottom Section: Recipient (Left) & Closing (Right) */}
-                                                <div className="flex flex-col sm:flex-row justify-between items-end gap-8">
-
-                                                    {/* Bottom Left: Recipient Address */}
-                                                    <div className="text-left w-full sm:w-1/2 text-zinc-600 dark:text-zinc-400 text-xs sm:text-sm">
-                                                        <p className="font-bold mb-1">To,</p>
-                                                        <div className="whitespace-pre-wrap">{write.data?.receiverAddress}</div>
-                                                    </div>
-
-                                                    {/* Bottom Right: Closing & Sender Name */}
-                                                    <div className="text-right w-full sm:w-1/2">
-                                                        <p className="mb-4">{write.data?.closing || "Yours faithfully,"}</p>
-                                                        <p className="font-bold text-zinc-900 dark:text-zinc-100">{write.data?.senderName}</p>
-                                                    </div>
-                                                </div>
-
+                                                <div className="flex flex-col items-end text-right mb-8 text-zinc-600 dark:text-zinc-400 text-xs sm:text-sm">{write.data?.senderAddress && (<div className="whitespace-pre-wrap mb-1">{write.data.senderAddress}</div>)}{write.data?.date && (<div className="font-bold">{write.data.date}</div>)}</div>
+                                                <div className="mb-6 space-y-2">{write.data?.subject && (<p className="font-bold underline text-zinc-900 dark:text-zinc-100">Subject: {write.data.subject}</p>)}{write.data?.salutation && (<p>{write.data.salutation}</p>)}</div>
+                                                <div className="whitespace-pre-wrap mb-12 text-justify">{write.modelAnswer}</div>
+                                                <div className="flex flex-col sm:flex-row justify-between items-end gap-8"><div className="text-left w-full sm:w-1/2 text-zinc-600 dark:text-zinc-400 text-xs sm:text-sm"><p className="font-bold mb-1">To,</p><div className="whitespace-pre-wrap">{write.data?.receiverAddress}</div></div><div className="text-right w-full sm:w-1/2"><p className="mb-4">{write.data?.closing || "Yours faithfully,"}</p><p className="font-bold text-zinc-900 dark:text-zinc-100">{write.data?.senderName}</p></div></div>
                                             </div>
                                         ) : (
-                                            <>
-                                                {/* FAMILY TREE VISUALIZER */}
-                                                {write.type === 'FAMILY_CHART' && write.data?.familyMembers && (
-                                                    <div className="my-8 p-8 bg-zinc-50/80 dark:bg-black/30 border border-zinc-100 dark:border-zinc-800 rounded-xl overflow-x-auto custom-scrollbar">
-                                                        <div className="min-w-max">
-                                                            {(() => {
-                                                                const roots = write.data.familyMembers.filter(m => !m.parentId || m.parentId === 'null' || m.parentId === 'root');
-                                                                const startNode = roots.length > 0 ? roots[0].parentId : null;
-                                                                return <FamilyTree members={write.data.familyMembers} parentId={startNode} />;
-                                                            })()}
-                                                        </div>
-                                                    </div>
-                                                )}
-
-                                                {write.data?.hints && write.data.hints.length > 0 && (
-                                                    <div className="mb-6 p-5 bg-amber-50/50 dark:bg-amber-900/5 border border-amber-100 dark:border-amber-800/30 rounded-xl">
-                                                        <p className="text-xs font-bold text-amber-600 dark:text-amber-500 uppercase tracking-wide mb-3 flex items-center gap-1"><Lightbulb size={12}/> Points / Hints:</p>
-                                                        <div className="flex flex-wrap gap-2">{write.data.hints.map((hint, hIdx) => (<span key={hIdx} className="px-2.5 py-1 bg-white dark:bg-zinc-900 border border-amber-200 dark:border-amber-800/50 rounded-md text-xs font-medium text-amber-900 dark:text-amber-200 shadow-sm">{hint}</span>))}</div>
-                                                    </div>
-                                                )}
-
-                                                {write.modelAnswer && write.type !== 'INFORMAL_LETTER' && (
-                                                    <AnimatePresence>
-                                                        {revealedAnswers[`${uIndex}-write-${wIdx}`] && (
-                                                            <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden">
-                                                                <div className="mt-4 p-6 bg-zinc-50 dark:bg-zinc-800/30 border-l-2 border-rose-400 rounded-r-lg">
-                                                                    <p className="whitespace-pre-wrap text-sm leading-relaxed text-zinc-700 dark:text-zinc-300 font-serif">{write.modelAnswer}</p>
-                                                                </div>
-                                                            </motion.div>
-                                                        )}
-                                                    </AnimatePresence>
-                                                )}
-                                            </>
+                                            <>{write.type === 'FAMILY_CHART' && write.data?.familyMembers && (<div className="my-8 p-8 bg-zinc-50/80 dark:bg-black/30 border border-zinc-100 dark:border-zinc-800 rounded-xl overflow-x-auto custom-scrollbar"><div className="min-w-max">{(() => { const roots = write.data.familyMembers.filter(m => !m.parentId || m.parentId === 'null' || m.parentId === 'root'); const startNode = roots.length > 0 ? roots[0].parentId : null; return <FamilyTree members={write.data.familyMembers} parentId={startNode} />; })()}</div></div>)}{write.data?.hints && write.data.hints.length > 0 && (<div className="mb-6 p-5 bg-amber-50/50 dark:bg-amber-900/5 border border-amber-100 dark:border-amber-800/30 rounded-xl"><p className="text-xs font-bold text-amber-600 dark:text-amber-500 uppercase tracking-wide mb-3 flex items-center gap-1"><Lightbulb size={12}/> Points / Hints:</p><div className="flex flex-wrap gap-2">{write.data.hints.map((hint, hIdx) => (<span key={hIdx} className="px-2.5 py-1 bg-white dark:bg-zinc-900 border border-amber-200 dark:border-amber-800/50 rounded-md text-xs font-medium text-amber-900 dark:text-amber-200 shadow-sm">{hint}</span>))}</div></div>)}{write.modelAnswer && write.type !== 'INFORMAL_LETTER' && (<AnimatePresence>{revealedAnswers[`${uIndex}-write-${wIdx}`] && (<motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden"><div className="mt-4 p-6 bg-zinc-50 dark:bg-zinc-800/30 border-l-2 border-rose-400 rounded-r-lg"><p className="whitespace-pre-wrap text-sm leading-relaxed text-zinc-700 dark:text-zinc-300 font-serif">{write.modelAnswer}</p></div></motion.div>)}</AnimatePresence>)}</>
                                         )}
-
-                                        {write.modelAnswer && (
-                                            <div className="mt-6 pt-4 border-t border-dashed border-zinc-200 dark:border-zinc-800">
-                                                <button onClick={() => toggleReveal(uIndex, `write-${wIdx}`)} className="flex items-center gap-2 text-xs font-bold text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-300 transition-colors">
-                                                    {revealedAnswers[`${uIndex}-write-${wIdx}`] ? <EyeOff size={14}/> : <Eye size={14}/>}
-                                                    {revealedAnswers[`${uIndex}-write-${wIdx}`]
-                                                        ? (write.type === 'INFORMAL_LETTER' ? "Hide Letter" : "Hide Model Answer")
-                                                        : (write.type === 'INFORMAL_LETTER' ? "View Full Letter" : "View Model Answer")
-                                                    }
-                                                </button>
-                                            </div>
-                                        )}
+                                        {write.modelAnswer && (<div className="mt-6 pt-4 border-t border-dashed border-zinc-200 dark:border-zinc-800"><button onClick={() => toggleReveal(uIndex, `write-${wIdx}`)} className="flex items-center gap-2 text-xs font-bold text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-300 transition-colors">{revealedAnswers[`${uIndex}-write-${wIdx}`] ? <EyeOff size={14}/> : <Eye size={14}/>}{revealedAnswers[`${uIndex}-write-${wIdx}`] ? (write.type === 'INFORMAL_LETTER' ? "Hide Letter" : "Hide Model Answer") : (write.type === 'INFORMAL_LETTER' ? "View Full Letter" : "View Model Answer")}</button></div>)}
                                     </div>
                                 ))}
                             </div>
@@ -673,6 +462,92 @@ export default function ChapterDetail() {
                 </motion.div>
             ))}
         </motion.div>
+
+        {/* --- DICTIONARY MODAL --- */}
+        <AnimatePresence>
+            {selectedWord && (
+                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm" onClick={() => setSelectedWord(null)}>
+                    <motion.div
+                        initial={{ scale: 0.9, opacity: 0 }}
+                        animate={{ scale: 1, opacity: 1 }}
+                        exit={{ scale: 0.9, opacity: 0 }}
+                        onClick={(e) => e.stopPropagation()}
+                        className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl shadow-2xl max-w-sm w-full overflow-hidden"
+                    >
+                        {/* Header */}
+                        <div className="flex items-center justify-between p-4 border-b border-zinc-100 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-900/50">
+                            <div className="flex items-center gap-2">
+                                <Book size={16} className="text-indigo-500"/>
+                                <h3 className="text-sm font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">Dictionary</h3>
+                            </div>
+                            <button onClick={() => setSelectedWord(null)} className="p-1 rounded-full hover:bg-zinc-200 dark:hover:bg-zinc-800 transition-colors text-zinc-400"><X size={16}/></button>
+                        </div>
+
+                        {/* Content */}
+                        <div className="p-6">
+                            {selectedWord.loading ? (
+                                <div className="flex flex-col items-center py-8 text-zinc-400 gap-3">
+                                    <Loader2 size={24} className="animate-spin text-indigo-500"/>
+                                    <p className="text-xs">Fetching definition...</p>
+                                </div>
+                            ) : selectedWord.error ? (
+                                <div className="text-center py-6">
+                                    <p className="text-zinc-500 text-sm mb-4">Definition not found.</p>
+                                    <a href={`https://translate.google.com/?sl=en&tl=bn&text=${selectedWord.word}&op=translate`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-500 text-white rounded-lg text-sm font-bold hover:bg-indigo-600 transition-colors">
+                                        <Languages size={14}/> Translate to Bengali
+                                    </a>
+                                </div>
+                            ) : (
+                                <div className="space-y-6">
+                                    <div className="flex items-end justify-between">
+                                        <div>
+                                            <h2 className="text-2xl font-bold text-zinc-900 dark:text-white capitalize leading-none mb-1">{selectedWord.data.word}</h2>
+                                            <span className="text-indigo-500 font-mono text-sm">{selectedWord.data.phonetic}</span>
+                                        </div>
+                                        {selectedWord.data.phonetics?.find(p => p.audio)?.audio && (
+                                            <button onClick={() => new Audio(selectedWord.data.phonetics.find(p => p.audio).audio).play()} className="p-2.5 rounded-full bg-indigo-100 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 hover:scale-105 active:scale-95 transition-all">
+                                                <Volume2 size={20}/>
+                                            </button>
+                                        )}
+                                    </div>
+
+                                    {/* Meanings */}
+                                    <div className="space-y-4 max-h-[40vh] overflow-y-auto custom-scrollbar pr-2">
+                                        {selectedWord.data.meanings?.slice(0, 2).map((m, i) => (
+                                            <div key={i}>
+                                                <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest bg-zinc-100 dark:bg-zinc-800 px-2 py-0.5 rounded">{m.partOfSpeech}</span>
+                                                <ul className="mt-2 space-y-2">
+                                                    {m.definitions.slice(0, 2).map((d, j) => (
+                                                        <li key={j} className="text-sm text-zinc-700 dark:text-zinc-300 leading-snug list-disc ml-4 pl-1">
+                                                            {d.definition}
+                                                        </li>
+                                                    ))}
+                                                </ul>
+                                            </div>
+                                        ))}
+                                    </div>
+
+                                    {/* Action Footer */}
+                                    <div className="pt-4 border-t border-zinc-100 dark:border-zinc-800">
+                                        <a href={`https://translate.google.com/?sl=en&tl=bn&text=${selectedWord.word}&op=translate`} target="_blank" rel="noopener noreferrer" className="flex items-center justify-center gap-2 w-full py-2.5 bg-zinc-900 dark:bg-white text-white dark:text-black rounded-xl text-xs font-bold hover:opacity-90 transition-opacity">
+                                            <Languages size={14}/> Translate to Bengali
+                                        </a>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    </motion.div>
+                </motion.div>
+            )}
+        </AnimatePresence>
+
+        {/* --- FLASHCARD MODAL --- */}
+        {showFlashcards && (
+            <FlashcardRunner
+                cards={flashcardDeck}
+                onClose={() => setShowFlashcards(false)}
+            />
+        )}
 
       </main>
 
@@ -685,6 +560,220 @@ export default function ChapterDetail() {
     </div>
   );
 }
+
+// --- NEW COMPONENT: FLASHCARD RUNNER ---
+const FlashcardRunner = ({ cards, onClose }) => {
+    const [index, setIndex] = useState(0);
+    const [isFlipped, setIsFlipped] = useState(false);
+    const [definition, setDefinition] = useState(null);
+    const [loadingDef, setLoadingDef] = useState(false);
+
+    // Fetch definition logic remains the same
+    useEffect(() => {
+        const fetchDef = async () => {
+            const word = cards[index].word;
+            setLoadingDef(true);
+            try {
+                const res = await fetch(`https://api.dictionaryapi.dev/api/v2/entries/en/${word}`);
+                if (res.ok) {
+                    const data = await res.json();
+                    setDefinition(data[0]);
+                } else {
+                    setDefinition(null);
+                }
+            } catch (e) {
+                setDefinition(null);
+            } finally {
+                setLoadingDef(false);
+            }
+        };
+        if(isFlipped && !definition) {
+            fetchDef();
+        } else if (!isFlipped) {
+            // Optional: Delay clearing slightly so it doesn't vanish mid-flip if user flips back quickly
+            // But for now, keeping it simple is fine.
+            const t = setTimeout(() => setDefinition(null), 300);
+            return () => clearTimeout(t);
+        }
+    }, [index, isFlipped]);
+
+    const handleNext = (e) => {
+        e.stopPropagation();
+        if (index < cards.length - 1) {
+            setIsFlipped(false);
+            setTimeout(() => setIndex(prev => prev + 1), 200); // Slight delay for smoother feel
+        }
+    };
+
+    const handlePrev = (e) => {
+        e.stopPropagation();
+        if (index > 0) {
+            setIsFlipped(false);
+            setTimeout(() => setIndex(prev => prev - 1), 200);
+        }
+    };
+
+    return (
+        <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-zinc-950/95 backdrop-blur-md p-4"
+            onClick={onClose}
+        >
+            <div className="absolute top-6 right-6">
+                <button onClick={onClose} className="p-2 bg-white/10 hover:bg-white/20 rounded-full text-white transition-colors"><X size={24}/></button>
+            </div>
+
+            <div className="flex flex-col items-center w-full max-w-md" onClick={(e) => e.stopPropagation()}>
+                {/* Progress Bar */}
+                <div className="flex items-center gap-3 mb-8 text-zinc-400 font-mono text-xs tracking-wider">
+                    <span>{index + 1}</span>
+                    <div className="w-32 h-1 bg-zinc-800 rounded-full overflow-hidden">
+                        <motion.div
+                            className="h-full bg-indigo-500"
+                            initial={{ width: 0 }}
+                            animate={{ width: `${((index + 1) / cards.length) * 100}%` }}
+                            transition={{ duration: 0.3 }}
+                        />
+                    </div>
+                    <span>{cards.length}</span>
+                </div>
+
+                {/* The Card Container */}
+                <div
+                    className="relative w-full aspect-[3/2] cursor-pointer group"
+                    style={{ perspective: "1200px" }} // Increased perspective for deeper 3D effect
+                    onClick={() => setIsFlipped(!isFlipped)}
+                >
+                    <motion.div
+                        className="w-full h-full relative"
+                        style={{ transformStyle: "preserve-3d" }}
+                        initial={false}
+                        animate={{ rotateY: isFlipped ? 180 : 0 }}
+                        transition={{
+                            type: "spring",
+                            stiffness: 200,
+                            damping: 25,
+                            mass: 1 // lighter mass = quicker start
+                        }}
+                    >
+                        {/* Front Side */}
+                        <div
+                            className="absolute inset-0 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-3xl shadow-2xl flex flex-col items-center justify-center p-8"
+                            style={{ backfaceVisibility: "hidden", WebkitBackfaceVisibility: "hidden" }}
+                        >
+                            <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-[0.2em] mb-4">Word</span>
+                            <h2 className="text-4xl font-bold text-zinc-900 dark:text-white text-center capitalize">{cards[index].word}</h2>
+
+                            <div className="absolute bottom-6 flex items-center gap-2 text-zinc-400 opacity-50 text-xs">
+                                <RotateCw size={12}/> <span>Tap to flip</span>
+                            </div>
+                        </div>
+
+                        {/* Back Side */}
+                        <div
+                            className="absolute inset-0 bg-indigo-600 dark:bg-indigo-900 rounded-3xl shadow-2xl flex flex-col items-center justify-center p-8 text-white overflow-hidden border border-indigo-500/20"
+                            style={{
+                                backfaceVisibility: "hidden",
+                                WebkitBackfaceVisibility: "hidden",
+                                transform: "rotateY(180deg)"
+                            }}
+                        >
+                            {loadingDef ? (
+                                <Loader2 className="animate-spin opacity-50" />
+                            ) : definition ? (
+                                <div className="text-center space-y-4 animate-in fade-in zoom-in duration-300">
+                                    <div className="flex flex-col items-center gap-1">
+                                        <h3 className="text-3xl font-bold capitalize">{definition.word}</h3>
+                                        {definition.phonetic && <span className="text-indigo-200 font-mono text-xs opacity-75">{definition.phonetic}</span>}
+                                    </div>
+
+                                    <div className="w-12 h-0.5 bg-indigo-400/30 mx-auto rounded-full"/>
+
+                                    <div className="text-sm md:text-lg leading-relaxed font-medium opacity-90 line-clamp-4">
+                                        "{definition.meanings?.[0]?.definitions?.[0]?.definition}"
+                                    </div>
+
+                                    {definition.meanings?.[0]?.partOfSpeech && (
+                                        <span className="inline-block px-3 py-1 bg-black/20 rounded-full text-[10px] font-bold uppercase tracking-wider text-indigo-100">
+                                            {definition.meanings[0].partOfSpeech}
+                                        </span>
+                                    )}
+                                </div>
+                            ) : (
+                                <div className="text-center animate-in fade-in duration-300">
+                                    <p className="mb-4 text-indigo-200 text-sm">Definition not found.</p>
+                                    <a
+                                        href={`https://translate.google.com/?sl=en&tl=bn&text=${cards[index].word}&op=translate`}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="inline-flex items-center gap-2 px-5 py-2.5 bg-white text-indigo-950 rounded-full text-xs font-bold hover:scale-105 transition-transform shadow-lg"
+                                        onClick={(e) => e.stopPropagation()}
+                                    >
+                                        <Languages size={14}/> See Meaning
+                                    </a>
+                                </div>
+                            )}
+                        </div>
+                    </motion.div>
+                </div>
+
+                {/* Controls */}
+                <div className="flex items-center gap-6 mt-10">
+                    <button
+                        onClick={handlePrev}
+                        disabled={index === 0}
+                        className="p-4 rounded-full bg-zinc-800/50 hover:bg-zinc-800 border border-zinc-700 disabled:opacity-30 disabled:cursor-not-allowed text-white transition-all hover:scale-110 active:scale-90"
+                    >
+                        <ChevronLeft size={24} />
+                    </button>
+
+                    <button
+                        onClick={() => setIsFlipped(!isFlipped)}
+                        className="h-14 px-8 bg-white text-black font-bold rounded-full hover:scale-105 active:scale-95 transition-all shadow-lg flex items-center gap-2"
+                    >
+                        <RotateCw size={16} className={`transition-transform duration-500 ${isFlipped ? 'rotate-180' : ''}`} />
+                        <span>{isFlipped ? "Show Word" : "Reveal"}</span>
+                    </button>
+
+                    <button
+                        onClick={handleNext}
+                        disabled={index === cards.length - 1}
+                        className="p-4 rounded-full bg-zinc-800/50 hover:bg-zinc-800 border border-zinc-700 disabled:opacity-30 disabled:cursor-not-allowed text-white transition-all hover:scale-110 active:scale-90"
+                    >
+                        <ChevronRight size={24} />
+                    </button>
+                </div>
+            </div>
+        </motion.div>
+    );
+};
+
+// --- HELPER COMPONENT: CLICKABLE WORD RENDERER ---
+const InteractiveText = ({ text, onWordClick }) => {
+    // Split by non-word characters but keep them to preserve punctuation
+    const parts = text.split(/([a-zA-Z]+(?:['’-][a-zA-Z]+)?)/g);
+
+    return (
+        <p className="text-lg md:text-xl text-zinc-900 dark:text-zinc-100 leading-relaxed font-serif max-w-prose">
+            {parts.map((part, i) => {
+                if (/[a-zA-Z]/.test(part)) {
+                    return (
+                        <span
+                            key={i}
+                            onClick={() => onWordClick(part)}
+                            className="cursor-pointer hover:bg-yellow-200 dark:hover:bg-yellow-500/30 hover:text-yellow-900 dark:hover:text-yellow-100 rounded px-0.5 transition-colors"
+                        >
+                            {part}
+                        </span>
+                    );
+                }
+                return <span key={i}>{part}</span>;
+            })}
+        </p>
+    );
+};
 
 const FamilyTree = ({ members, parentId = null }) => {
     const children = members.filter(m => m.parentId === parentId);
