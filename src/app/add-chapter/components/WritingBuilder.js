@@ -1,4 +1,4 @@
-import { X, Trash2, Network, Plus, ArrowDownLeft, ArrowDownRight, ArrowUpRight, MapPin, Calendar, User, PenLine, Users, MessageSquare, FileText } from "lucide-react";
+import { X, Trash2, Network, Plus, ArrowDownLeft, ArrowDownRight, ArrowUpRight, MapPin, Calendar, User, PenLine, Users, MessageSquare, FileText, Briefcase } from "lucide-react";
 import { InputLabel, ThemedInput, ThemedTextarea } from "./SharedUI";
 
 export default function WritingBuilder({ unitIdx, wIdx, writing, onChange, onRemove }) {
@@ -211,6 +211,108 @@ export default function WritingBuilder({ unitIdx, wIdx, writing, onChange, onRem
                 </div>
             )}
 
+            {/* --- NEW: FORMAL LETTER FORM (Strict Layout) --- */}
+            {writing.type === 'FORMAL_LETTER' && (
+                <div className="mb-6 space-y-4 border-l-2 border-indigo-200 pl-4">
+                    {/* Top: Recipient Address & Designation (1) */}
+                    <div className="bg-white dark:bg-zinc-900/50 p-4 rounded-lg border border-indigo-100 dark:border-indigo-900/20">
+                        <h4 className="text-[10px] font-bold text-indigo-500 uppercase tracking-widest mb-3 flex items-center gap-1">
+                            <Briefcase size={12}/> ① Recipient Details
+                        </h4>
+                        <div>
+                            <InputLabel>Name, Designation & Address</InputLabel>
+                            <ThemedTextarea
+                                value={writing.data?.receiverAddress || ""}
+                                onChange={(e) => updateData('receiverAddress', e.target.value)}
+                                placeholder="The Headmaster, XYZ School..."
+                                className="min-h-[80px]"
+                            />
+                        </div>
+                    </div>
+
+                    {/* Middle: Subject (2) & Salutation (3) */}
+                    <div className="grid md:grid-cols-2 gap-4">
+                        <div>
+                            <InputLabel icon={PenLine}>② Subject Line</InputLabel>
+                            <ThemedInput
+                                value={writing.data?.subject || ""}
+                                onChange={(e) => updateData('subject', e.target.value)}
+                                placeholder="Sub: Leave of absence..."
+                            />
+                        </div>
+                        <div>
+                            <InputLabel icon={User}>③ Salutation</InputLabel>
+                            <ThemedInput
+                                value={writing.data?.salutation || ""}
+                                onChange={(e) => updateData('salutation', e.target.value)}
+                                placeholder="Sir/Madam,"
+                            />
+                        </div>
+                    </div>
+
+                    {/* Body (4) is handled by main modelAnswer field below */}
+                    <div className="p-3 bg-indigo-50 dark:bg-indigo-900/20 rounded border border-indigo-100 dark:border-indigo-800 text-center text-xs text-indigo-600 dark:text-indigo-300 font-medium">
+                        ④ Enter the "Body of the Letter" in the Model Answer box below.
+                    </div>
+
+                    {/* Bottom Section */}
+                    <div className="grid md:grid-cols-2 gap-4">
+                        {/* Bottom Left: Writer Address (7) & Date (8) */}
+                        <div className="bg-white dark:bg-zinc-900/50 p-4 rounded-lg border border-indigo-100 dark:border-indigo-900/20 flex flex-col justify-end">
+                            <h4 className="text-[10px] font-bold text-indigo-500 uppercase tracking-widest mb-3 flex items-center gap-1">
+                                <ArrowDownLeft size={12}/> Bottom Left
+                            </h4>
+                            <div className="space-y-4">
+                                <div>
+                                    <InputLabel icon={MapPin}>⑦ Writer's Address</InputLabel>
+                                    <ThemedTextarea
+                                        value={writing.data?.senderAddress || ""}
+                                        onChange={(e) => updateData('senderAddress', e.target.value)}
+                                        placeholder="School Hostel..."
+                                        className="min-h-[60px]"
+                                    />
+                                </div>
+                                <div>
+                                    <InputLabel icon={Calendar}>⑧ Date</InputLabel>
+                                    <ThemedInput
+                                        value={writing.data?.date || ""}
+                                        onChange={(e) => updateData('date', e.target.value)}
+                                        placeholder="24th July, 2024"
+                                    />
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Bottom Right: Subscription (5) & Signature (6) */}
+                        <div className="bg-white dark:bg-zinc-900/50 p-4 rounded-lg border border-indigo-100 dark:border-indigo-900/20 flex flex-col justify-end text-right">
+                            <h4 className="text-[10px] font-bold text-indigo-500 uppercase tracking-widest mb-3 flex items-center justify-end gap-1">
+                                Bottom Right <ArrowDownRight size={12}/>
+                            </h4>
+                            <div className="space-y-4">
+                                <div>
+                                    <InputLabel>⑤ Subscription</InputLabel>
+                                    <ThemedInput
+                                        value={writing.data?.closing || ""}
+                                        onChange={(e) => updateData('closing', e.target.value)}
+                                        placeholder="Yours sincerely,"
+                                        className="text-right"
+                                    />
+                                </div>
+                                <div>
+                                    <InputLabel>⑥ Signature / Name</InputLabel>
+                                    <ThemedInput
+                                        value={writing.data?.senderName || ""}
+                                        onChange={(e) => updateData('senderName', e.target.value)}
+                                        placeholder="Name..."
+                                        className="text-right font-bold"
+                                    />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {/* --- FAMILY CHART --- */}
             {writing.type === 'FAMILY_CHART' ? (
                 <div className="mb-6 bg-zinc-50 p-6 rounded-xl border border-zinc-200 overflow-x-auto">
@@ -221,7 +323,7 @@ export default function WritingBuilder({ unitIdx, wIdx, writing, onChange, onRem
             ) : null}
 
             {/* --- GENERIC HINTS --- */}
-            {!['FAMILY_CHART', 'INFORMAL_LETTER', 'SUMMARY', 'DIALOGUE'].includes(writing.type) && (
+            {!['FAMILY_CHART', 'INFORMAL_LETTER', 'FORMAL_LETTER', 'SUMMARY', 'DIALOGUE'].includes(writing.type) && (
                 <div className="grid md:grid-cols-2 gap-4 mb-4">
                      <div className="col-span-2">
                         <InputLabel>Hints / Points</InputLabel>
@@ -245,7 +347,7 @@ export default function WritingBuilder({ unitIdx, wIdx, writing, onChange, onRem
                  </div>
             )}
 
-            <div><InputLabel>Model Answer</InputLabel><ThemedTextarea value={writing.modelAnswer} onChange={(e) => updateField('modelAnswer', e.target.value)} placeholder="Answer..." className="min-h-[100px]"/></div>
+            <div><InputLabel>Model Answer (Body)</InputLabel><ThemedTextarea value={writing.modelAnswer} onChange={(e) => updateField('modelAnswer', e.target.value)} placeholder="Main body content..." className="min-h-[100px]"/></div>
         </div>
     );
 }

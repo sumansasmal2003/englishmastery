@@ -80,12 +80,12 @@ export default function ChapterChatbot({ chapterId, chapterTitle }) {
             initial={{ opacity: 0, y: 20, scale: 0.9 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 20, scale: 0.9 }}
-            className="fixed bottom-6 left-6 z-[60] w-[90vw] md:w-[400px] h-[500px] max-h-[80vh] bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl shadow-2xl flex flex-col overflow-hidden"
+            className="fixed bottom-6 left-6 z-[60] w-[90vw] md:w-[400px] h-[500px] max-h-[80vh] bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded shadow-2xl flex flex-col overflow-hidden"
           >
             {/* Header */}
             <div className="p-4 bg-zinc-50 dark:bg-zinc-800/50 border-b border-zinc-100 dark:border-zinc-800 flex justify-between items-center">
               <div className="flex items-center gap-2">
-                <div className="p-1.5 bg-indigo-100 dark:bg-indigo-500/20 rounded-lg">
+                <div className="p-1.5 bg-indigo-100 dark:bg-indigo-500/20 rounded">
                     <Bot size={18} className="text-indigo-600 dark:text-indigo-400" />
                 </div>
                 <div>
@@ -107,7 +107,7 @@ export default function ChapterChatbot({ chapterId, chapterTitle }) {
                         <Bot size={12} className="text-indigo-600 dark:text-indigo-400"/>
                     </div>
                   )}
-                  <div className={`p-3 rounded-2xl text-sm max-w-[80%] leading-relaxed ${
+                  <div className={`p-3 rounded text-sm max-w-[80%] leading-relaxed ${
                     msg.role === 'user'
                       ? 'bg-zinc-900 dark:bg-white text-white dark:text-black rounded-tr-sm'
                       : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-800 dark:text-zinc-200 rounded-tl-sm'
@@ -121,7 +121,7 @@ export default function ChapterChatbot({ chapterId, chapterTitle }) {
                    <div className="w-6 h-6 rounded-full bg-indigo-100 dark:bg-indigo-900/50 flex items-center justify-center flex-shrink-0">
                         <Bot size={12} className="text-indigo-600 dark:text-indigo-400"/>
                     </div>
-                    <div className="p-3 bg-zinc-100 dark:bg-zinc-800 rounded-2xl rounded-tl-sm">
+                    <div className="p-3 bg-zinc-100 dark:bg-zinc-800 rounded rounded-tl-sm">
                         <Loader2 size={16} className="animate-spin text-zinc-400" />
                     </div>
                 </div>
@@ -135,12 +135,12 @@ export default function ChapterChatbot({ chapterId, chapterTitle }) {
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
                   placeholder="Ask a question..."
-                  className="w-full pl-4 pr-12 py-3 bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-200 dark:border-zinc-700 rounded-xl text-sm outline-none focus:border-indigo-500 dark:focus:border-indigo-500 transition-colors"
+                  className="w-full pl-4 pr-12 py-3 bg-zinc-50 dark:bg-zinc-800/50 border border-zinc-200 dark:border-zinc-700 rounded text-sm outline-none focus:border-indigo-500 dark:focus:border-indigo-500 transition-colors"
                 />
                 <button
                     type="submit"
                     disabled={!input.trim() || loading}
-                    className="absolute right-2 p-1.5 bg-indigo-600 text-white rounded-lg disabled:opacity-50 disabled:bg-zinc-300 dark:disabled:bg-zinc-700 hover:bg-indigo-700 transition-colors"
+                    className="absolute right-2 p-1.5 bg-indigo-600 text-white rounded disabled:opacity-50 disabled:bg-zinc-300 dark:disabled:bg-zinc-700 hover:bg-indigo-700 transition-colors"
                 >
                     <Send size={16} />
                 </button>

@@ -32,6 +32,27 @@ const itemVariants = {
   show: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 50 } },
 };
 
+// --- "SUBTLE GRAPH" BORDER (Vercel Style) ---
+const GraphBorder = ({ side = "left" }) => {
+  const isLeft = side === "left";
+  // Position classes
+  const containerClass = isLeft ? "left-0" : "right-0";
+
+  return (
+    <div className={`fixed ${containerClass} top-0 bottom-0 w-16 z-20 hidden xl:flex flex-col items-center bg-white/50 dark:bg-black/50 backdrop-blur-[2px] border-${side === 'left' ? 'r' : 'l'} border-zinc-200 dark:border-zinc-800`}>
+      {/* Inner Vertical Line (creates the double border effect) */}
+      <div className={`absolute top-0 bottom-0 ${isLeft ? "right-1" : "left-1"} w-px bg-zinc-200 dark:bg-zinc-800`}></div>
+
+      {/* The Subtle Graph Styling */}
+      <div className="absolute inset-0 w-full h-full pointer-events-none">
+          <div
+            className="absolute inset-0 bg-[linear-gradient(to_right,#8080801a_1px,transparent_1px),linear-gradient(to_bottom,#8080801a_1px,transparent_1px)] bg-[size:20px_20px]"
+          ></div>
+      </div>
+    </div>
+  );
+};
+
 export default function ChapterDetail() {
   const { id } = useParams();
   const router = useRouter();
@@ -158,7 +179,7 @@ export default function ChapterDetail() {
             return (
                 <div key={i} className="flex gap-3 mb-3">
                     <div className="shrink-0 text-sm font-bold text-indigo-600 dark:text-indigo-400 min-w-[80px] text-right">{match[1]}</div>
-                    <div className="text-sm text-zinc-700 dark:text-zinc-300 bg-white dark:bg-zinc-800/50 px-3 py-1.5 rounded-lg rounded-tl-none border border-zinc-100 dark:border-zinc-800 shadow-sm">{match[2]}</div>
+                    <div className="text-sm text-zinc-700 dark:text-zinc-300 bg-white dark:bg-[#111] px-3 py-1.5 rounded-lg rounded-tl-none border border-zinc-100 dark:border-zinc-800 shadow-sm">{match[2]}</div>
                 </div>
             );
         }
@@ -235,27 +256,49 @@ export default function ChapterDetail() {
     }
   };
 
-  if (loading) return (
-    <div className="min-h-screen bg-white dark:bg-[#050505] flex flex-col items-center justify-center text-zinc-400 gap-3">
-        <Loader2 className="animate-spin w-8 h-8 text-indigo-600" />
-        <p className="text-xs uppercase tracking-widest animate-pulse">Loading Content</p>
-    </div>
-  );
+  // --- REPLACED LOADER WITH SKELETON ---
+  if (loading) return <ChapterSkeleton />;
 
-  if (!chapter) return <div className="min-h-screen bg-white dark:bg-[#050505] flex items-center justify-center text-zinc-500">Chapter not found.</div>;
+  if (!chapter) return <div className="min-h-screen bg-white dark:bg-black flex items-center justify-center text-zinc-500">Chapter not found.</div>;
 
   return (
-    <div className="min-h-screen bg-white dark:bg-[#050505] text-zinc-900 dark:text-zinc-200 font-sans selection:bg-indigo-500/30 relative">
+    <div className="min-h-screen bg-white dark:bg-black text-zinc-900 dark:text-zinc-100 font-sans selection:bg-indigo-500/30 selection:text-white relative overflow-x-hidden">
 
-      {/* --- BACKGROUND GRID --- */}
+      {/* --- BACKGROUND DESIGN (Vercel Style) --- */}
       <div className="fixed inset-0 z-0 pointer-events-none">
-        <div className="absolute inset-0 bg-[linear-gradient(to_right,#8080800a_1px,transparent_1px),linear-gradient(to_bottom,#8080800a_1px,transparent_1px)] bg-[size:24px_24px]"></div>
-        <div className="absolute inset-0 bg-[radial-gradient(circle_800px_at_50%_200px,#ffffff00,white)] dark:bg-[radial-gradient(circle_800px_at_50%_200px,#00000000,#050505)]"></div>
+         {/* 1. Base Grid - Crisp and Thin */}
+         <div
+           className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:40px_40px]"
+         ></div>
+
+         {/* 2. Secondary Pattern - Dotted Overlay (Very Subtle) */}
+         <div className="absolute inset-0 opacity-20 dark:opacity-20" style={{
+             backgroundImage: 'radial-gradient(#888 1px, transparent 1px)',
+             backgroundSize: '40px 40px'
+         }}></div>
+
+         {/* 3. Glowing Orbs - High Tech "Gradient Mesh" feel */}
+         <div className="absolute top-[-20%] left-[20%] w-[500px] h-[500px] bg-indigo-500/10 dark:bg-indigo-500/20 blur-[100px] rounded-full mix-blend-multiply dark:mix-blend-screen opacity-50 animate-pulse-slow" />
+         <div className="absolute bottom-[-20%] right-[20%] w-[600px] h-[600px] bg-violet-500/10 dark:bg-violet-500/20 blur-[120px] rounded-full mix-blend-multiply dark:mix-blend-screen opacity-50" />
       </div>
 
-      {/* --- Header --- */}
-      <header className="fixed top-0 inset-x-0 z-40 border-b border-zinc-200/50 dark:border-white/5 bg-white/60 dark:bg-black/60 backdrop-blur-md">
-        <div className="max-w-5xl mx-auto px-6 h-16 flex items-center justify-between">
+      {/* --- LEFT SIDE BORDER (Structured) --- */}
+      <GraphBorder side="left" />
+
+      {/* --- RIGHT SIDE BORDER (Structured) --- */}
+      <GraphBorder side="right" />
+
+      {/* --- Header (With Grid Texture) --- */}
+      <header className="fixed top-0 inset-x-0 z-40 border-b border-zinc-200 dark:border-zinc-800 bg-white/60 dark:bg-black/60 backdrop-blur-md overflow-hidden">
+
+        {/* Header Grid Texture */}
+        <div className="absolute inset-0 z-0 pointer-events-none">
+            <div
+              className="absolute inset-0 bg-[linear-gradient(to_right,#8080801a_1px,transparent_1px),linear-gradient(to_bottom,#8080801a_1px,transparent_1px)] bg-[size:20px_20px]"
+            ></div>
+        </div>
+
+        <div className="relative z-10 max-w-5xl mx-auto px-6 h-16 flex items-center justify-between">
             <div className="flex items-center gap-4">
                 <button onClick={() => router.back()} className="p-2 -ml-2 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-full transition-colors">
                     <ArrowLeft size={18} className="text-zinc-500 dark:text-zinc-400" />
@@ -287,7 +330,7 @@ export default function ChapterDetail() {
 
         {/* Title Card */}
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="mb-24 text-center max-w-3xl mx-auto">
-            <div className="inline-flex items-center gap-2 mb-6 px-4 py-1.5 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-full shadow-sm">
+            <div className="inline-flex items-center gap-2 mb-6 px-4 py-1.5 bg-white dark:bg-[#111] border border-zinc-200 dark:border-zinc-800 rounded-full shadow-sm">
                 <span className="text-xs font-mono text-zinc-500 dark:text-zinc-400 font-medium">Chapter {chapter.chapterNumber}</span>
                 {chapter.author && <><span className="text-zinc-300 dark:text-zinc-700">•</span><span className="text-zinc-600 dark:text-zinc-400 text-xs font-medium">{chapter.author}</span></>}
             </div>
@@ -301,7 +344,7 @@ export default function ChapterDetail() {
 
                     {/* Unit Header */}
                     <div className="flex items-center gap-4 mb-8 border-b border-zinc-200 dark:border-zinc-800 pb-4">
-                        <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-indigo-50 dark:bg-indigo-500/10 border border-indigo-100 dark:border-indigo-500/20 text-indigo-600 dark:text-indigo-400">
+                        <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-indigo-50 dark:bg-indigo-500/10 border border-indigo-100 dark:border-indigo-500/20 text-indigo-600 dark:text-indigo-400">
                             <Layers size={20} />
                         </div>
                         <div>
@@ -313,14 +356,14 @@ export default function ChapterDetail() {
                     {/* 1. Paragraphs Section (INTERACTIVE) */}
                     <div className="space-y-6 mb-12">
                         {unit.paragraphs.map((para, pIndex) => (
-                            <div key={pIndex} className="group relative bg-white dark:bg-zinc-900/40 border border-zinc-200 dark:border-zinc-800 rounded-2xl overflow-hidden hover:border-zinc-300 dark:hover:border-zinc-700 transition-all duration-300 shadow-sm">
-                                <div className="absolute top-4 left-4 z-10 w-6 h-6 flex items-center justify-center rounded-full bg-zinc-100 dark:bg-zinc-800 text-[10px] font-mono text-zinc-500 dark:text-zinc-400 border border-zinc-200 dark:border-zinc-700">{pIndex + 1}</div>
-                                <div className="grid md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-zinc-100 dark:divide-zinc-800/50">
+                            <div key={pIndex} className="group relative bg-white dark:bg-[#0a0a0a] border border-zinc-200 dark:border-zinc-800 rounded-lg overflow-hidden hover:border-zinc-300 dark:hover:border-zinc-700 transition-all duration-300 shadow-sm">
+                                <div className="absolute top-4 left-4 z-10 w-6 h-6 flex items-center justify-center rounded bg-zinc-100 dark:bg-[#1a1a1a] text-[10px] font-mono text-zinc-500 dark:text-zinc-400 border border-zinc-200 dark:border-zinc-700">{pIndex + 1}</div>
+                                <div className="grid md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-zinc-100 dark:divide-zinc-800">
                                     <div className="p-8 pt-12 md:pt-8 relative">
                                         <div className="absolute top-4 right-4 flex items-center gap-2"><span className="text-[10px] font-bold text-zinc-400 dark:text-zinc-500 uppercase">English</span><span className="w-1.5 h-1.5 bg-indigo-500 rounded-full"></span></div>
                                         <InteractiveText text={para.english} onWordClick={handleWordClick} />
                                     </div>
-                                    <div className="p-8 pt-12 md:pt-8 bg-zinc-50/50 dark:bg-black/20 relative">
+                                    <div className="p-8 pt-12 md:pt-8 bg-zinc-50/50 dark:bg-[#0a0a0a]/50 relative">
                                         <div className="absolute top-4 right-4 flex items-center gap-2"><span className="text-[10px] font-bold text-zinc-400 dark:text-zinc-500 uppercase">Bengali</span><span className="w-1.5 h-1.5 bg-emerald-500 rounded-full"></span></div>
                                         <p className="text-lg md:text-xl text-zinc-700 dark:text-zinc-300 leading-relaxed font-bengali max-w-prose">{para.bengali}</p>
                                     </div>
@@ -331,24 +374,24 @@ export default function ChapterDetail() {
 
                     {/* 2. Collapsible Activities Section */}
                     {unit.activities?.length > 0 && (
-                        <div className="border border-zinc-200 dark:border-zinc-800 rounded-2xl overflow-hidden bg-white/50 dark:bg-zinc-900/20 backdrop-blur-sm transition-colors mb-12">
+                        <div className="border border-zinc-200 dark:border-zinc-800 rounded-lg overflow-hidden bg-white/50 dark:bg-[#0a0a0a]/80 backdrop-blur-sm transition-colors mb-12">
                             {/* Trigger */}
                             <button onClick={() => toggleActivitySection(uIndex)} className="w-full flex items-center justify-between p-6 hover:bg-zinc-50 dark:hover:bg-zinc-800/30 transition-colors group">
                                 <div className="flex items-center gap-4">
-                                    <div className={`p-2.5 rounded-xl transition-colors ${expandedActivities[uIndex] ? 'bg-indigo-100 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400' : 'bg-zinc-100 dark:bg-zinc-800 text-zinc-500'}`}><CheckCircle2 size={20} /></div>
+                                    <div className={`p-2.5 rounded-lg transition-colors ${expandedActivities[uIndex] ? 'bg-indigo-100 dark:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400' : 'bg-zinc-100 dark:bg-[#1a1a1a] text-zinc-500 dark:text-zinc-400'}`}><CheckCircle2 size={20} /></div>
                                     <div className="text-left">
                                         <h3 className={`text-base font-bold transition-colors ${expandedActivities[uIndex] ? 'text-indigo-900 dark:text-indigo-100' : 'text-zinc-900 dark:text-zinc-100'}`}>Practice Activities</h3>
-                                        <p className="text-xs text-zinc-500">{unit.activities.length} activity sets available</p>
+                                        <p className="text-xs text-zinc-500">Click to expand {unit.activities.length} activity sets</p>
                                     </div>
                                 </div>
-                                <div className={`p-2 rounded-full transition-all ${expandedActivities[uIndex] ? 'rotate-180 bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-white' : 'text-zinc-400 group-hover:text-zinc-600'}`}><ChevronDown size={18} /></div>
+                                <div className={`p-2 rounded transition-all ${expandedActivities[uIndex] ? 'rotate-180 bg-zinc-100 dark:bg-[#1a1a1a] text-zinc-900 dark:text-white' : 'text-zinc-400 group-hover:text-zinc-600 dark:group-hover:text-zinc-200'}`}><ChevronDown size={18} /></div>
                             </button>
 
                             {/* Content */}
                             <AnimatePresence>
                                 {expandedActivities[uIndex] && (
                                     <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.3, ease: "easeInOut" }}>
-                                        <div className="p-6 pt-0 space-y-8 border-t border-zinc-200 dark:border-zinc-800/50">
+                                        <div className="p-6 pt-0 space-y-8 border-t border-zinc-200 dark:border-zinc-800">
                                             <div className="h-2"></div>
                                             <div className="grid gap-8">
                                                 {unit.activities.map((act, actIdx) => {
@@ -357,9 +400,9 @@ export default function ChapterDetail() {
                                                     const relatedGrammar = findRelatedGrammar(act);
 
                                                     return (
-                                                        <div key={actIdx} className="bg-white dark:bg-zinc-900/40 border border-zinc-200 dark:border-zinc-800 rounded-2xl overflow-hidden shadow-sm">
+                                                        <div key={actIdx} className="bg-white dark:bg-[#0f0f0f] border border-zinc-200 dark:border-zinc-800 rounded-lg overflow-hidden shadow-sm">
                                                             {/* Activity Header */}
-                                                            <div className="p-5 border-b border-zinc-100 dark:border-zinc-800 flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-zinc-50/50 dark:bg-zinc-900/50">
+                                                            <div className="p-5 border-b border-zinc-100 dark:border-zinc-800 flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-zinc-50/50 dark:bg-[#151515]">
                                                                 <div className="flex-1">
                                                                     <div className="flex flex-wrap items-center gap-3 mb-1">
                                                                         <div className="flex items-center gap-2">
@@ -367,47 +410,47 @@ export default function ChapterDetail() {
                                                                             <span className="text-xs font-bold text-zinc-500 dark:text-zinc-400 uppercase tracking-wide">{act.type.replace('_', ' ')}</span>
                                                                         </div>
                                                                         {relatedGrammar && (
-                                                                            <Link href={`/grammar/${relatedGrammar._id}`} className="group flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-indigo-50 dark:bg-indigo-500/10 border border-indigo-200 dark:border-indigo-500/30 text-[10px] font-bold text-indigo-600 dark:text-indigo-400 hover:bg-indigo-100 transition-colors">
-                                                                                <Lightbulb size={10} className="text-indigo-500"/>
-                                                                                <span>Review: {relatedGrammar.topic}</span>
-                                                                                <ExternalLink size={10} className="opacity-50 group-hover:opacity-100"/>
+                                                                            <Link href={`/grammar/${relatedGrammar._id}`} className="group flex items-center gap-1.5 px-2 py-0.5 rounded bg-indigo-50 dark:bg-indigo-500/10 border border-indigo-200 dark:border-indigo-500/30 text-[10px] font-bold text-indigo-600 dark:text-indigo-400 hover:bg-indigo-100 transition-colors">
+                                                                                    <Lightbulb size={10} className="text-indigo-500"/>
+                                                                                    <span>Review: {relatedGrammar.topic}</span>
+                                                                                    <ExternalLink size={10} className="opacity-50 group-hover:opacity-100"/>
                                                                             </Link>
                                                                         )}
                                                                     </div>
                                                                     <p className="text-sm text-zinc-800 dark:text-zinc-200 font-medium">{act.instruction}</p>
                                                                 </div>
-                                                                <button onClick={() => toggleReveal(uIndex, actIdx)} className="flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium border border-zinc-200 dark:border-zinc-700 hover:bg-white dark:hover:bg-zinc-800 transition-colors text-zinc-600 dark:text-zinc-400 whitespace-nowrap">
-                                                                    {isRevealed ? <EyeOff size={14}/> : <Eye size={14}/>}
-                                                                    {isRevealed ? "Hide Answers" : "Show Answers"}
+                                                                <button onClick={() => toggleReveal(uIndex, actIdx)} className="flex items-center gap-2 px-3 py-1.5 rounded-md text-xs font-medium border border-zinc-200 dark:border-zinc-700 hover:bg-white dark:hover:bg-[#222] transition-colors text-zinc-600 dark:text-zinc-400 whitespace-nowrap">
+                                                                        {isRevealed ? <EyeOff size={14}/> : <Eye size={14}/>}
+                                                                        {isRevealed ? "Hide Answers" : "Show Answers"}
                                                                 </button>
                                                             </div>
 
-                                                            {/* Activity Content (Same as before) */}
+                                                            {/* Activity Content */}
                                                             {act.type === 'WORD_BOX' && act.questions?.[0]?.options?.length > 0 && (
                                                                 <div className="p-4 border-b border-zinc-100 dark:border-zinc-800 bg-indigo-50/30 dark:bg-indigo-900/10">
                                                                     <p className="text-[10px] font-bold text-indigo-400 uppercase mb-2 flex items-center gap-1"><BoxSelect size={12}/> Word Bank:</p>
-                                                                    <div className="flex flex-wrap gap-2">{act.questions[0].options.map((word, wIdx) => (<span key={wIdx} className="px-3 py-1.5 bg-white dark:bg-zinc-800 border border-indigo-100 dark:border-indigo-500/20 rounded-lg text-sm text-indigo-700 dark:text-indigo-300 font-medium shadow-sm select-none">{word}</span>))}</div>
+                                                                        <div className="flex flex-wrap gap-2">{act.questions[0].options.map((word, wIdx) => (<span key={wIdx} className="px-3 py-1.5 bg-white dark:bg-[#1a1a1a] border border-indigo-100 dark:border-indigo-500/20 rounded text-sm text-indigo-700 dark:text-indigo-300 font-medium shadow-sm select-none">{word}</span>))}</div>
                                                                 </div>
                                                             )}
-                                                            {act.type === 'CHART_FILL' && (<div className="overflow-x-auto rounded-lg border border-zinc-200 dark:border-zinc-800 m-6"><table className="w-full min-w-[500px] text-sm text-left"><thead className="bg-zinc-100 dark:bg-zinc-800 text-xs uppercase text-zinc-500 font-bold"><tr>{(act.columnHeaders || []).map((h, i) => (<th key={i} className="px-4 py-3 border-b border-zinc-200 dark:border-zinc-700 border-r last:border-r-0 border-zinc-200 dark:border-zinc-700">{h}</th>))}</tr></thead><tbody className="divide-y divide-zinc-100 dark:divide-zinc-800">{act.questions.map((q, qIdx) => (<tr key={qIdx} className="bg-white dark:bg-zinc-900/50">{(q.options || []).map((cellData, colIdx) => { const { isInput, answer, content } = getChartParts(cellData); return (<td key={colIdx} className="p-3 border-r last:border-r-0 border-zinc-100 dark:border-zinc-800 align-top">{isInput ? (<div className="relative">{isRevealed ? (<div className="px-3 py-2 rounded bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 font-bold border border-emerald-100 dark:border-emerald-800">{answer}</div>) : (<input className="w-full bg-zinc-50 dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded px-3 py-2 outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all placeholder:text-zinc-400" placeholder="Type answer..."/>)}</div>) : (<span className="text-zinc-700 dark:text-zinc-300 font-medium">{content}</span>)}</td>); })}</tr>))}</tbody></table></div>)}
+                                                            {act.type === 'CHART_FILL' && (<div className="overflow-x-auto rounded border border-zinc-200 dark:border-zinc-800 m-6"><table className="w-full min-w-[500px] text-sm text-left"><thead className="bg-zinc-100 dark:bg-[#1a1a1a] text-xs uppercase text-zinc-500 font-bold"><tr>{(act.columnHeaders || []).map((h, i) => (<th key={i} className="px-4 py-3 border-b border-zinc-200 dark:border-zinc-800 border-r last:border-r-0 border-zinc-200 dark:border-zinc-800">{h}</th>))}</tr></thead><tbody className="divide-y divide-zinc-100 dark:divide-zinc-800">{act.questions.map((q, qIdx) => (<tr key={qIdx} className="bg-white dark:bg-[#0f0f0f]">{(q.options || []).map((cellData, colIdx) => { const { isInput, answer, content } = getChartParts(cellData); return (<td key={colIdx} className="p-3 border-r last:border-r-0 border-zinc-100 dark:border-zinc-800 align-top">{isInput ? (<div className="relative">{isRevealed ? (<div className="px-3 py-2 rounded bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 font-bold border border-emerald-100 dark:border-emerald-800">{answer}</div>) : (<input className="w-full bg-zinc-50 dark:bg-[#1a1a1a] border border-zinc-200 dark:border-zinc-800 rounded px-3 py-2 outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all placeholder:text-zinc-500 dark:placeholder:text-zinc-600" placeholder="Type answer..."/>)}</div>) : (<span className="text-zinc-700 dark:text-zinc-300 font-medium">{content}</span>)}</td>); })}</tr>))}</tbody></table></div>)}
                                                             {act.type === 'CAUSE_EFFECT' && (<div className="grid grid-cols-2 bg-lime-50 dark:bg-lime-900/10 border-b border-lime-100 dark:border-lime-900/20"><div className="p-3 text-xs font-bold text-center text-lime-800 dark:text-lime-400 border-r border-lime-100 dark:border-lime-900/20 uppercase tracking-widest">{act.columnHeaders?.[0] || "Cause"}</div><div className="p-3 text-xs font-bold text-center text-lime-800 dark:text-lime-400 uppercase tracking-widest">{act.columnHeaders?.[1] || "Effect"}</div></div>)}
                                                             <div className="p-6 space-y-6">
                                                                 {act.type === 'CAUSE_EFFECT' ? (
-                                                                    <div className="space-y-0 divide-y divide-zinc-100 dark:divide-zinc-800 border border-zinc-100 dark:border-zinc-800 rounded-lg overflow-hidden">
-                                                                         {act.questions.map((q, qIdx) => { const hideLeft = q.options && q.options[0] === 'CAUSE'; const hideRight = q.options && q.options[0] === 'EFFECT'; return (<div key={qIdx} className="grid grid-cols-2"><div className="p-4 text-sm border-r border-zinc-100 dark:border-zinc-800 bg-white/50 dark:bg-zinc-900/50">{hideLeft ? (isRevealed ? <span className="font-bold text-emerald-600 dark:text-emerald-400">{q.leftItem}</span> : <div className="flex justify-center"><div className="h-6 w-16 bg-zinc-100 dark:bg-zinc-800 rounded border border-zinc-200 dark:border-zinc-700 flex items-center justify-center text-zinc-400 text-xs">?</div></div>) : <span className="text-zinc-700 dark:text-zinc-300">{q.leftItem}</span>}</div><div className="p-4 text-sm bg-white/50 dark:bg-zinc-900/50">{hideRight ? (isRevealed ? <span className="font-bold text-emerald-600 dark:text-emerald-400">{q.rightItem}</span> : <div className="flex justify-center"><div className="h-6 w-16 bg-zinc-100 dark:bg-zinc-800 rounded border border-zinc-200 dark:border-zinc-700 flex items-center justify-center text-zinc-400 text-xs">?</div></div>) : <span className="text-zinc-700 dark:text-zinc-300">{q.rightItem}</span>}</div></div>); })}
+                                                                    <div className="space-y-0 divide-y divide-zinc-100 dark:divide-zinc-800 border border-zinc-100 dark:border-zinc-800 rounded overflow-hidden">
+                                                                            {act.questions.map((q, qIdx) => { const hideLeft = q.options && q.options[0] === 'CAUSE'; const hideRight = q.options && q.options[0] === 'EFFECT'; return (<div key={qIdx} className="grid grid-cols-2"><div className="p-4 text-sm border-r border-zinc-100 dark:border-zinc-800 bg-white/50 dark:bg-[#111]">{hideLeft ? (isRevealed ? <span className="font-bold text-emerald-600 dark:text-emerald-400">{q.leftItem}</span> : <div className="flex justify-center"><div className="h-6 w-16 bg-zinc-100 dark:bg-[#222] rounded border border-zinc-200 dark:border-zinc-700 flex items-center justify-center text-zinc-400 text-xs">?</div></div>) : <span className="text-zinc-700 dark:text-zinc-300">{q.leftItem}</span>}</div><div className="p-4 text-sm bg-white/50 dark:bg-[#111]">{hideRight ? (isRevealed ? <span className="font-bold text-emerald-600 dark:text-emerald-400">{q.rightItem}</span> : <div className="flex justify-center"><div className="h-6 w-16 bg-zinc-100 dark:bg-[#222] rounded border border-zinc-200 dark:border-zinc-700 flex items-center justify-center text-zinc-400 text-xs">?</div></div>) : <span className="text-zinc-700 dark:text-zinc-300">{q.rightItem}</span>}</div></div>); })}
                                                                     </div>
                                                                 ) : (
                                                                     act.questions.map((q, qIdx) => (
                                                                         <div key={qIdx} className="relative"><div className="flex gap-4"><span className="text-sm font-bold text-zinc-400 font-mono mt-0.5">{qIdx + 1}.</span><div className="w-full">
-                                                                            {!['MATCHING', 'UNDERLINE', 'UNDERLINE_CIRCLE', 'CATEGORIZE', 'CAUSE_EFFECT', 'CHART_FILL'].includes(act.type) && q.text && (<p className="text-base text-zinc-800 dark:text-zinc-100 mb-3 leading-snug">{cleanText(q.text)}</p>)}
-                                                                            {act.type === 'CATEGORIZE' && (<div className="space-y-4"><p className="text-base text-zinc-800 dark:text-zinc-100 mb-1 leading-snug">{cleanText(q.text)}</p>{isRevealed && (<div className="mt-2 border border-zinc-200 dark:border-zinc-700 rounded-lg overflow-hidden"><div className="grid bg-zinc-50 dark:bg-zinc-800/50 border-b border-zinc-200 dark:border-zinc-700" style={{ gridTemplateColumns: `repeat(${categoryHeaders.length}, 1fr)` }}>{categoryHeaders.map((header, hIdx) => (<div key={hIdx} className="p-3 text-xs font-bold text-center text-zinc-600 dark:text-zinc-300 border-r border-zinc-200 dark:border-zinc-700 last:border-0 uppercase tracking-wider">{header}</div>))}</div><div className="grid bg-white dark:bg-zinc-900/30" style={{ gridTemplateColumns: `repeat(${categoryHeaders.length}, 1fr)` }}>{categoryHeaders.map((_, hIdx) => (<div key={hIdx} className="p-3 text-sm text-center border-r border-zinc-200 dark:border-zinc-700 last:border-0 min-h-[40px]">{getCategorizedWords(q.text, hIdx).map((word, wIdx) => (<span key={wIdx} className="block mb-1 text-emerald-600 dark:text-emerald-400 font-medium">{word}</span>))}</div>))}</div></div>)}</div>)}
-                                                                            {act.type === 'UNDERLINE' && (<div className="space-y-3"><p className="text-base text-zinc-800 dark:text-zinc-100 mb-1 leading-snug">{cleanText(q.text)}</p>{isRevealed && (<div className="p-3 rounded-lg border bg-emerald-50/50 dark:bg-emerald-900/10 border-emerald-100 dark:border-emerald-800/30"><div className="flex items-center gap-2 text-[10px] font-bold text-emerald-600 uppercase mb-2"><CheckCircle2 size={12}/> Correct Answer:</div><div className="text-sm text-zinc-700 dark:text-zinc-300">{renderUnderlineAnswer(q.text)}</div></div>)}</div>)}
-                                                                            {act.type === 'UNDERLINE_CIRCLE' && (<div className="space-y-3"><p className="text-base text-zinc-800 dark:text-zinc-100 mb-1 leading-snug">{cleanText(q.text)}</p>{isRevealed && (<div className="p-4 rounded-lg border bg-slate-50 dark:bg-slate-900/20 border-slate-100 dark:border-slate-800/50"><div className="flex items-center gap-2 text-[10px] font-bold text-slate-500 uppercase mb-3"><CheckCircle2 size={12}/> Solution:</div><div className="text-base text-zinc-800 dark:text-zinc-200">{renderUnderlineCircleAnswer(q.text)}</div></div>)}</div>)}
-                                                                            {act.type === 'MCQ' && (<div className="grid grid-cols-1 sm:grid-cols-2 gap-3">{q.options?.map((opt, oIdx) => (<div key={oIdx} className={`px-4 py-3 rounded-lg text-sm border transition-all ${isRevealed && opt === q.correctAnswer ? 'bg-emerald-50 dark:bg-emerald-900/20 border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300 font-medium' : 'bg-white dark:bg-zinc-900 border-zinc-200 dark:border-zinc-800 text-zinc-600 dark:text-zinc-400'}`}><span className="font-mono text-xs mr-2 opacity-50">{String.fromCharCode(97 + oIdx)})</span>{opt}</div>))}</div>)}
-                                                                            {act.type === 'REARRANGE' && (<div className="space-y-2">{!isRevealed ? ([...q.options].sort().map((opt, i) => (<div key={i} className="flex gap-3 items-start p-3 bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-100 dark:border-zinc-800 rounded-lg"><span className="text-xs font-bold text-zinc-400 w-4 pt-0.5">{String.fromCharCode(65+i)}.</span><p className="text-sm text-zinc-600 dark:text-zinc-400">{opt}</p></div>))) : (q.options.map((opt, i) => (<div key={i} className="flex gap-3 items-start p-3 bg-emerald-50 dark:bg-emerald-900/10 border border-emerald-100 dark:border-emerald-800/30 rounded-lg"><span className="text-xs font-bold text-emerald-600 w-4 pt-0.5">{i+1}.</span><p className="text-sm text-zinc-800 dark:text-zinc-200 font-medium">{opt}</p></div>)))}</div>)}
-                                                                            {act.type === 'MATCHING' && (<div className="flex items-center justify-between p-4 rounded-lg bg-zinc-50 dark:bg-zinc-900/50 border border-zinc-100 dark:border-zinc-800"><span className="text-sm text-zinc-700 dark:text-zinc-300 font-medium">{q.leftItem}</span><div className="flex items-center gap-2 px-4"><div className="h-px w-8 bg-zinc-300 dark:bg-zinc-700"></div>{isRevealed ? <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/20 px-2 py-1 rounded">Matches</span> : <div className="w-2 h-2 rounded-full bg-zinc-300 dark:bg-zinc-700"></div>}<div className="h-px w-8 bg-zinc-300 dark:bg-zinc-700"></div></div><span className={`text-sm font-medium ${isRevealed ? 'text-zinc-900 dark:text-white' : 'blur-sm text-zinc-400 select-none'}`}>{q.rightItem}</span></div>)}
-                                                                            {act.type === 'TRUE_FALSE' && (<div className="flex flex-col gap-2"><div className="flex gap-2">{isRevealed && <span className={`text-xs font-bold px-2 py-1 rounded ${q.isTrue ? 'bg-emerald-100 text-emerald-800' : 'bg-red-100 text-red-800'}`}>{q.isTrue ? 'TRUE' : 'FALSE'}</span>}</div>{q.supportingStatement && isRevealed && <p className="text-sm text-zinc-500 italic mt-1 border-l-2 border-zinc-300 pl-3">"{q.supportingStatement}"</p>}</div>)}
-                                                                            {(act.type === 'FILL_BLANKS' || act.type === 'QA' || act.type === 'WORD_BOX') && isRevealed && (<div className="mt-2 p-3 bg-emerald-50 dark:bg-emerald-900/10 border border-emerald-100 dark:border-emerald-800/30 rounded-lg"><p className="text-sm text-emerald-800 dark:text-emerald-300"><span className="font-bold mr-2">Answer:</span> {q.correctAnswer}</p></div>)}
+                                                                                {!['MATCHING', 'UNDERLINE', 'UNDERLINE_CIRCLE', 'CATEGORIZE', 'CAUSE_EFFECT', 'CHART_FILL'].includes(act.type) && q.text && (<p className="text-base text-zinc-800 dark:text-zinc-100 mb-3 leading-snug">{cleanText(q.text)}</p>)}
+                                                                                {act.type === 'CATEGORIZE' && (<div className="space-y-4"><p className="text-base text-zinc-800 dark:text-zinc-100 mb-1 leading-snug">{cleanText(q.text)}</p>{isRevealed && (<div className="mt-2 border border-zinc-200 dark:border-zinc-800 rounded overflow-hidden"><div className="grid bg-zinc-50 dark:bg-[#1a1a1a] border-b border-zinc-200 dark:border-zinc-800" style={{ gridTemplateColumns: `repeat(${categoryHeaders.length}, 1fr)` }}>{categoryHeaders.map((header, hIdx) => (<div key={hIdx} className="p-3 text-xs font-bold text-center text-zinc-600 dark:text-zinc-300 border-r border-zinc-200 dark:border-zinc-800 last:border-0 uppercase tracking-wider">{header}</div>))}</div><div className="grid bg-white dark:bg-[#111]" style={{ gridTemplateColumns: `repeat(${categoryHeaders.length}, 1fr)` }}>{categoryHeaders.map((_, hIdx) => (<div key={hIdx} className="p-3 text-sm text-center border-r border-zinc-200 dark:border-zinc-800 last:border-0 min-h-[40px]">{getCategorizedWords(q.text, hIdx).map((word, wIdx) => (<span key={wIdx} className="block mb-1 text-emerald-600 dark:text-emerald-400 font-medium">{word}</span>))}</div>))}</div></div>)}</div>)}
+                                                                                {act.type === 'UNDERLINE' && (<div className="space-y-3"><p className="text-base text-zinc-800 dark:text-zinc-100 mb-1 leading-snug">{cleanText(q.text)}</p>{isRevealed && (<div className="p-3 rounded border bg-emerald-50/50 dark:bg-emerald-900/10 border-emerald-100 dark:border-emerald-800/30"><div className="flex items-center gap-2 text-[10px] font-bold text-emerald-600 uppercase mb-2"><CheckCircle2 size={12}/> Correct Answer:</div><div className="text-sm text-zinc-700 dark:text-zinc-300">{renderUnderlineAnswer(q.text)}</div></div>)}</div>)}
+                                                                                {act.type === 'UNDERLINE_CIRCLE' && (<div className="space-y-3"><p className="text-base text-zinc-800 dark:text-zinc-100 mb-1 leading-snug">{cleanText(q.text)}</p>{isRevealed && (<div className="p-4 rounded border bg-slate-50 dark:bg-slate-900/20 border-slate-100 dark:border-slate-800/50"><div className="flex items-center gap-2 text-[10px] font-bold text-slate-500 uppercase mb-3"><CheckCircle2 size={12}/> Solution:</div><div className="text-base text-zinc-800 dark:text-zinc-200">{renderUnderlineCircleAnswer(q.text)}</div></div>)}</div>)}
+                                                                                {act.type === 'MCQ' && (<div className="grid grid-cols-1 sm:grid-cols-2 gap-3">{q.options?.map((opt, oIdx) => (<div key={oIdx} className={`px-4 py-3 rounded text-sm border transition-all ${isRevealed && opt === q.correctAnswer ? 'bg-emerald-50 dark:bg-emerald-900/20 border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300 font-medium' : 'bg-white dark:bg-[#1a1a1a] border-zinc-200 dark:border-zinc-800 text-zinc-600 dark:text-zinc-400'}`}><span className="font-mono text-xs mr-2 opacity-50">{String.fromCharCode(97 + oIdx)})</span>{opt}</div>))}</div>)}
+                                                                                {act.type === 'REARRANGE' && (<div className="space-y-2">{!isRevealed ? ([...q.options].sort().map((opt, i) => (<div key={i} className="flex gap-3 items-start p-3 bg-zinc-50 dark:bg-[#1a1a1a] border border-zinc-100 dark:border-zinc-800 rounded"><span className="text-xs font-bold text-zinc-400 w-4 pt-0.5">{String.fromCharCode(65+i)}.</span><p className="text-sm text-zinc-600 dark:text-zinc-400">{opt}</p></div>))) : (q.options.map((opt, i) => (<div key={i} className="flex gap-3 items-start p-3 bg-emerald-50 dark:bg-emerald-900/10 border border-emerald-100 dark:border-emerald-800/30 rounded"><span className="text-xs font-bold text-emerald-600 w-4 pt-0.5">{i+1}.</span><p className="text-sm text-zinc-800 dark:text-zinc-200 font-medium">{opt}</p></div>)))}</div>)}
+                                                                                {act.type === 'MATCHING' && (<div className="flex items-center justify-between p-4 rounded bg-zinc-50 dark:bg-[#1a1a1a] border border-zinc-100 dark:border-zinc-800"><span className="text-sm text-zinc-700 dark:text-zinc-300 font-medium">{q.leftItem}</span><div className="flex items-center gap-2 px-4"><div className="h-px w-8 bg-zinc-300 dark:bg-zinc-700"></div>{isRevealed ? <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/20 px-2 py-1 rounded">Matches</span> : <div className="w-2 h-2 rounded-full bg-zinc-300 dark:bg-zinc-700"></div>}<div className="h-px w-8 bg-zinc-300 dark:bg-zinc-700"></div></div><span className={`text-sm font-medium ${isRevealed ? 'text-zinc-900 dark:text-white' : 'blur-sm text-zinc-400 select-none'}`}>{q.rightItem}</span></div>)}
+                                                                                {act.type === 'TRUE_FALSE' && (<div className="flex flex-col gap-2"><div className="flex gap-2">{isRevealed && <span className={`text-xs font-bold px-2 py-1 rounded ${q.isTrue ? 'bg-emerald-100 text-emerald-800' : 'bg-red-100 text-red-800'}`}>{q.isTrue ? 'TRUE' : 'FALSE'}</span>}</div>{q.supportingStatement && isRevealed && <p className="text-sm text-zinc-500 italic mt-1 border-l-2 border-zinc-300 pl-3">"{q.supportingStatement}"</p>}</div>)}
+                                                                                {(act.type === 'FILL_BLANKS' || act.type === 'QA' || act.type === 'WORD_BOX') && isRevealed && (<div className="mt-2 p-3 bg-emerald-50 dark:bg-emerald-900/10 border border-emerald-100 dark:border-emerald-800/30 rounded"><p className="text-sm text-emerald-800 dark:text-emerald-300"><span className="font-bold mr-2">Answer:</span> {q.correctAnswer}</p></div>)}
                                                                         </div></div></div>
                                                                     ))
                                                                 )}
@@ -432,28 +475,86 @@ export default function ChapterDetail() {
                             </div>
                             <div className="space-y-12">
                                 {unit.writings.map((write, wIdx) => (
-                                    <div key={wIdx} className="bg-white dark:bg-zinc-900/40 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-6 sm:p-8 shadow-sm relative overflow-hidden">
+                                    <div key={wIdx} className="bg-white dark:bg-[#0a0a0a] border border-zinc-200 dark:border-zinc-800 rounded-lg p-6 sm:p-8 shadow-sm relative overflow-hidden">
                                         <div className="absolute -top-10 -right-10 w-32 h-32 bg-rose-500/5 rounded-full blur-3xl" />
                                         <div className="mb-6 relative z-10">
                                             <span className="inline-block px-3 py-1 rounded-full bg-rose-50 dark:bg-rose-900/20 text-rose-600 dark:text-rose-400 text-[10px] font-bold tracking-wider uppercase mb-3 border border-rose-100 dark:border-rose-900/30">{write.type.replace(/_/g, ' ')}</span>
                                             <h4 className="text-lg font-bold text-zinc-900 dark:text-zinc-100 leading-snug">{write.question}</h4>
                                         </div>
-                                        {/* ... Writing content (same as previous) ... */}
+
+                                        {/* --- CONTENT RENDER LOGIC --- */}
                                         {write.type === 'DIALOGUE' ? (
-                                            <div className="space-y-6">{(write.data?.characters?.length > 0 || write.data?.setting) && (<div className="flex flex-wrap gap-4 p-4 bg-indigo-50/50 dark:bg-indigo-900/10 rounded-xl border border-indigo-100 dark:border-indigo-800/30">{write.data.setting && (<div className="flex items-center gap-2 text-xs font-medium text-indigo-800 dark:text-indigo-300"><MapPin size={14} className="text-indigo-500"/><span>{write.data.setting}</span></div>)}{write.data.characters && (<div className="flex items-center gap-2 text-xs font-medium text-indigo-800 dark:text-indigo-300"><Users size={14} className="text-indigo-500"/><span>{write.data.characters.join(' & ')}</span></div>)}</div>)}{write.modelAnswer && (<AnimatePresence>{revealedAnswers[`${uIndex}-write-${wIdx}`] && (<motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden"><div className="mt-4 p-6 bg-zinc-50 dark:bg-zinc-800/30 border-l-4 border-indigo-400 rounded-r-lg">{renderDialogueScript(write.modelAnswer)}</div></motion.div>)}</AnimatePresence>)}</div>
+                                            <div className="space-y-6">{(write.data?.characters?.length > 0 || write.data?.setting) && (<div className="flex flex-wrap gap-4 p-4 bg-indigo-50/50 dark:bg-indigo-900/10 rounded-lg border border-indigo-100 dark:border-indigo-800/30">{write.data.setting && (<div className="flex items-center gap-2 text-xs font-medium text-indigo-800 dark:text-indigo-300"><MapPin size={14} className="text-indigo-500"/><span>{write.data.setting}</span></div>)}{write.data.characters && (<div className="flex items-center gap-2 text-xs font-medium text-indigo-800 dark:text-indigo-300"><Users size={14} className="text-indigo-500"/><span>{write.data.characters.join(' & ')}</span></div>)}</div>)}{write.modelAnswer && (<AnimatePresence>{revealedAnswers[`${uIndex}-write-${wIdx}`] && (<motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden"><div className="mt-4 p-6 bg-zinc-50 dark:bg-[#1a1a1a] border-l-4 border-indigo-400 rounded-r-lg">{renderDialogueScript(write.modelAnswer)}</div></motion.div>)}</AnimatePresence>)}</div>
                                         ) : write.type === 'SUMMARY' ? (
-                                            <div className="space-y-6">{write.data?.passage && (<div className="p-6 bg-zinc-50 dark:bg-zinc-800/30 rounded-xl border border-zinc-200 dark:border-zinc-700/50 shadow-sm relative group"><div className="absolute top-0 right-0 px-3 py-1 bg-zinc-200 dark:bg-zinc-700 rounded-bl-xl text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Passage</div><p className="text-sm md:text-base leading-relaxed font-serif text-zinc-800 dark:text-zinc-200 whitespace-pre-wrap">{write.data.passage}</p></div>)}{write.data?.wordLimit && (<div className="flex justify-end"><span className="text-xs font-mono text-zinc-400 bg-zinc-100 dark:bg-zinc-800 px-2 py-1 rounded">Limit: {write.data.wordLimit}</span></div>)}{write.modelAnswer && (<AnimatePresence>{revealedAnswers[`${uIndex}-write-${wIdx}`] && (<motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden"><div className="mt-2 p-6 bg-emerald-50/50 dark:bg-emerald-900/10 border-l-4 border-emerald-400 rounded-r-lg"><h5 className="text-xs font-bold text-emerald-600 dark:text-emerald-400 uppercase mb-2">Summary Model Answer:</h5><p className="whitespace-pre-wrap text-sm leading-relaxed text-zinc-800 dark:text-zinc-200">{write.modelAnswer}</p></div></motion.div>)}</AnimatePresence>)}</div>
+                                            <div className="space-y-6">{write.data?.passage && (<div className="p-6 bg-zinc-50 dark:bg-[#1a1a1a] rounded-lg border border-zinc-200 dark:border-zinc-800 shadow-sm relative group"><div className="absolute top-0 right-0 px-3 py-1 bg-zinc-200 dark:bg-zinc-700 rounded-bl-lg text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Passage</div><p className="text-sm md:text-base leading-relaxed font-serif text-zinc-800 dark:text-zinc-200 whitespace-pre-wrap">{write.data.passage}</p></div>)}{write.data?.wordLimit && (<div className="flex justify-end"><span className="text-xs font-mono text-zinc-400 bg-zinc-100 dark:bg-zinc-800 px-2 py-1 rounded">Limit: {write.data.wordLimit}</span></div>)}{write.modelAnswer && (<AnimatePresence>{revealedAnswers[`${uIndex}-write-${wIdx}`] && (<motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden"><div className="mt-2 p-6 bg-emerald-50/50 dark:bg-emerald-900/10 border-l-4 border-emerald-400 rounded-r-lg"><h5 className="text-xs font-bold text-emerald-600 dark:text-emerald-400 uppercase mb-2">Summary Model Answer:</h5><p className="whitespace-pre-wrap text-sm leading-relaxed text-zinc-800 dark:text-zinc-200">{write.modelAnswer}</p></div></motion.div>)}</AnimatePresence>)}</div>
                                         ) : write.type === 'INFORMAL_LETTER' && revealedAnswers[`${uIndex}-write-${wIdx}`] ? (
-                                            <div className="mt-8 bg-zinc-50 dark:bg-zinc-800/20 border border-zinc-200 dark:border-zinc-700/50 p-6 sm:p-10 rounded-xl font-serif text-sm leading-relaxed text-zinc-800 dark:text-zinc-200 shadow-inner">
+                                            <div className="mt-8 bg-zinc-50 dark:bg-[#151515] border border-zinc-200 dark:border-zinc-800 p-6 sm:p-10 rounded-lg font-serif text-sm leading-relaxed text-zinc-800 dark:text-zinc-200 shadow-inner">
                                                 <div className="flex flex-col items-end text-right mb-8 text-zinc-600 dark:text-zinc-400 text-xs sm:text-sm">{write.data?.senderAddress && (<div className="whitespace-pre-wrap mb-1">{write.data.senderAddress}</div>)}{write.data?.date && (<div className="font-bold">{write.data.date}</div>)}</div>
                                                 <div className="mb-6 space-y-2">{write.data?.subject && (<p className="font-bold underline text-zinc-900 dark:text-zinc-100">Subject: {write.data.subject}</p>)}{write.data?.salutation && (<p>{write.data.salutation}</p>)}</div>
                                                 <div className="whitespace-pre-wrap mb-12 text-justify">{write.modelAnswer}</div>
                                                 <div className="flex flex-col sm:flex-row justify-between items-end gap-8"><div className="text-left w-full sm:w-1/2 text-zinc-600 dark:text-zinc-400 text-xs sm:text-sm"><p className="font-bold mb-1">To,</p><div className="whitespace-pre-wrap">{write.data?.receiverAddress}</div></div><div className="text-right w-full sm:w-1/2"><p className="mb-4">{write.data?.closing || "Yours faithfully,"}</p><p className="font-bold text-zinc-900 dark:text-zinc-100">{write.data?.senderName}</p></div></div>
                                             </div>
+                                        ) : write.type === 'FORMAL_LETTER' && revealedAnswers[`${uIndex}-write-${wIdx}`] ? (
+                                            /* --- NEW FORMAL LETTER LAYOUT --- */
+                                            <div className="mt-8 bg-white dark:bg-[#1a1a1a] border border-zinc-200 dark:border-zinc-800 p-6 sm:p-10 rounded-lg font-serif text-sm leading-relaxed text-zinc-800 dark:text-zinc-200 shadow-sm">
+                                                {/* 1. Recipient (Top Left) */}
+                                                <div className="mb-8">
+                                                    <div className="whitespace-pre-wrap font-bold text-zinc-900 dark:text-zinc-100">{write.data?.receiverAddress}</div>
+                                                </div>
+
+                                                {/* 2 & 3. Subject & Salutation */}
+                                                <div className="mb-6 space-y-3">
+                                                    {write.data?.subject && (
+                                                        <div className="font-bold underline text-zinc-900 dark:text-zinc-100">
+                                                            Sub: {write.data.subject}
+                                                        </div>
+                                                    )}
+                                                    {write.data?.salutation && (
+                                                        <div>{write.data.salutation}</div>
+                                                    )}
+                                                </div>
+
+                                                {/* 4. Body */}
+                                                <div className="whitespace-pre-wrap mb-12 text-justify leading-7">
+                                                    {write.modelAnswer}
+                                                </div>
+
+                                                {/* Bottom Section: Split Columns */}
+                                                <div className="flex flex-col sm:flex-row justify-between items-end gap-12 mt-12 border-t pt-8 border-zinc-100 dark:border-zinc-700">
+                                                    {/* 7 & 8. Bottom Left: Sender Address & Date */}
+                                                    <div className="text-left w-full sm:w-1/2 text-zinc-600 dark:text-zinc-400 text-xs sm:text-sm space-y-1">
+                                                        {write.data?.senderAddress && (
+                                                            <div className="whitespace-pre-wrap font-medium">{write.data.senderAddress}</div>
+                                                        )}
+                                                        {write.data?.date && (
+                                                            <div className="font-bold text-zinc-800 dark:text-zinc-300">{write.data.date}</div>
+                                                        )}
+                                                    </div>
+
+                                                    {/* 5 & 6. Bottom Right: Closing & Name */}
+                                                    <div className="text-right w-full sm:w-1/2">
+                                                        <p className="mb-8">{write.data?.closing || "Yours faithfully,"}</p>
+                                                        <p className="font-bold text-lg text-zinc-900 dark:text-zinc-100">{write.data?.senderName}</p>
+                                                    </div>
+                                                </div>
+                                            </div>
                                         ) : (
-                                            <>{write.type === 'FAMILY_CHART' && write.data?.familyMembers && (<div className="my-8 p-8 bg-zinc-50/80 dark:bg-black/30 border border-zinc-100 dark:border-zinc-800 rounded-xl overflow-x-auto custom-scrollbar"><div className="min-w-max">{(() => { const roots = write.data.familyMembers.filter(m => !m.parentId || m.parentId === 'null' || m.parentId === 'root'); const startNode = roots.length > 0 ? roots[0].parentId : null; return <FamilyTree members={write.data.familyMembers} parentId={startNode} />; })()}</div></div>)}{write.data?.hints && write.data.hints.length > 0 && (<div className="mb-6 p-5 bg-amber-50/50 dark:bg-amber-900/5 border border-amber-100 dark:border-amber-800/30 rounded-xl"><p className="text-xs font-bold text-amber-600 dark:text-amber-500 uppercase tracking-wide mb-3 flex items-center gap-1"><Lightbulb size={12}/> Points / Hints:</p><div className="flex flex-wrap gap-2">{write.data.hints.map((hint, hIdx) => (<span key={hIdx} className="px-2.5 py-1 bg-white dark:bg-zinc-900 border border-amber-200 dark:border-amber-800/50 rounded-md text-xs font-medium text-amber-900 dark:text-amber-200 shadow-sm">{hint}</span>))}</div></div>)}{write.modelAnswer && write.type !== 'INFORMAL_LETTER' && (<AnimatePresence>{revealedAnswers[`${uIndex}-write-${wIdx}`] && (<motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden"><div className="mt-4 p-6 bg-zinc-50 dark:bg-zinc-800/30 border-l-2 border-rose-400 rounded-r-lg"><p className="whitespace-pre-wrap text-sm leading-relaxed text-zinc-700 dark:text-zinc-300 font-serif">{write.modelAnswer}</p></div></motion.div>)}</AnimatePresence>)}</>
+                                            /* --- GENERIC FALLBACK (Charts, Hints, etc) --- */
+                                            <>{write.type === 'FAMILY_CHART' && write.data?.familyMembers && (<div className="my-8 p-8 bg-zinc-50/80 dark:bg-black/30 border border-zinc-100 dark:border-zinc-800 rounded-lg overflow-x-auto custom-scrollbar"><div className="min-w-max">{(() => { const roots = write.data.familyMembers.filter(m => !m.parentId || m.parentId === 'null' || m.parentId === 'root'); const startNode = roots.length > 0 ? roots[0].parentId : null; return <FamilyTree members={write.data.familyMembers} parentId={startNode} />; })()}</div></div>)}{write.data?.hints && write.data.hints.length > 0 && (<div className="mb-6 p-5 bg-amber-50/50 dark:bg-amber-900/5 border border-amber-100 dark:border-amber-800/30 rounded-lg"><p className="text-xs font-bold text-amber-600 dark:text-amber-500 uppercase tracking-wide mb-3 flex items-center gap-1"><Lightbulb size={12}/> Points / Hints:</p><div className="flex flex-wrap gap-2">{write.data.hints.map((hint, hIdx) => (<span key={hIdx} className="px-2.5 py-1 bg-white dark:bg-[#1a1a1a] border border-amber-200 dark:border-amber-800/50 rounded-md text-xs font-medium text-amber-900 dark:text-amber-200 shadow-sm">{hint}</span>))}</div></div>)}{write.modelAnswer && !['INFORMAL_LETTER', 'FORMAL_LETTER'].includes(write.type) && (<AnimatePresence>{revealedAnswers[`${uIndex}-write-${wIdx}`] && (<motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="overflow-hidden"><div className="mt-4 p-6 bg-zinc-50 dark:bg-[#1a1a1a] border-l-2 border-rose-400 rounded-r-lg"><p className="whitespace-pre-wrap text-sm leading-relaxed text-zinc-700 dark:text-zinc-300 font-serif">{write.modelAnswer}</p></div></motion.div>)}</AnimatePresence>)}</>
                                         )}
-                                        {write.modelAnswer && (<div className="mt-6 pt-4 border-t border-dashed border-zinc-200 dark:border-zinc-800"><button onClick={() => toggleReveal(uIndex, `write-${wIdx}`)} className="flex items-center gap-2 text-xs font-bold text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-300 transition-colors">{revealedAnswers[`${uIndex}-write-${wIdx}`] ? <EyeOff size={14}/> : <Eye size={14}/>}{revealedAnswers[`${uIndex}-write-${wIdx}`] ? (write.type === 'INFORMAL_LETTER' ? "Hide Letter" : "Hide Model Answer") : (write.type === 'INFORMAL_LETTER' ? "View Full Letter" : "View Model Answer")}</button></div>)}
+
+                                        {/* --- REVEAL BUTTON --- */}
+                                        {write.modelAnswer && (
+                                            <div className="mt-6 pt-4 border-t border-dashed border-zinc-200 dark:border-zinc-800">
+                                                <button onClick={() => toggleReveal(uIndex, `write-${wIdx}`)} className="flex items-center gap-2 text-xs font-bold text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-300 transition-colors">
+                                                    {revealedAnswers[`${uIndex}-write-${wIdx}`] ? <EyeOff size={14}/> : <Eye size={14}/>}
+                                                    {revealedAnswers[`${uIndex}-write-${wIdx}`]
+                                                        ? (['INFORMAL_LETTER', 'FORMAL_LETTER'].includes(write.type) ? "Hide Letter" : "Hide Model Answer")
+                                                        : (['INFORMAL_LETTER', 'FORMAL_LETTER'].includes(write.type) ? "View Full Letter" : "View Model Answer")
+                                                    }
+                                                </button>
+                                            </div>
+                                        )}
                                     </div>
                                 ))}
                             </div>
@@ -472,10 +573,10 @@ export default function ChapterDetail() {
                         animate={{ scale: 1, opacity: 1 }}
                         exit={{ scale: 0.9, opacity: 0 }}
                         onClick={(e) => e.stopPropagation()}
-                        className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-2xl shadow-2xl max-w-sm w-full overflow-hidden"
+                        className="bg-white dark:bg-[#0a0a0a] border border-zinc-200 dark:border-zinc-800 rounded-2xl shadow-2xl max-w-sm w-full overflow-hidden"
                     >
                         {/* Header */}
-                        <div className="flex items-center justify-between p-4 border-b border-zinc-100 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-900/50">
+                        <div className="flex items-center justify-between p-4 border-b border-zinc-100 dark:border-zinc-800 bg-zinc-50/50 dark:bg-[#111]">
                             <div className="flex items-center gap-2">
                                 <Book size={16} className="text-indigo-500"/>
                                 <h3 className="text-sm font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400">Dictionary</h3>
@@ -529,7 +630,7 @@ export default function ChapterDetail() {
 
                                     {/* Action Footer */}
                                     <div className="pt-4 border-t border-zinc-100 dark:border-zinc-800">
-                                        <a href={`https://translate.google.com/?sl=en&tl=bn&text=${selectedWord.word}&op=translate`} target="_blank" rel="noopener noreferrer" className="flex items-center justify-center gap-2 w-full py-2.5 bg-zinc-900 dark:bg-white text-white dark:text-black rounded-xl text-xs font-bold hover:opacity-90 transition-opacity">
+                                        <a href={`https://translate.google.com/?sl=en&tl=bn&text=${selectedWord.word}&op=translate`} target="_blank" rel="noopener noreferrer" className="flex items-center justify-center gap-2 w-full py-2.5 bg-zinc-900 dark:bg-white text-white dark:text-black rounded-lg text-xs font-bold hover:opacity-90 transition-opacity">
                                             <Languages size={14}/> Translate to Bengali
                                         </a>
                                     </div>
@@ -554,12 +655,70 @@ export default function ChapterDetail() {
       {/* --- Hidden PDF Template --- */}
       <div className="absolute top-0 left-0 w-full -z-50 opacity-0 pointer-events-none"><div ref={pdfRef} style={{ backgroundColor: '#ffffff', color: '#000000', padding: '40px 50px', fontFamily: '"Georgia", serif' }}><div style={{ textAlign: 'center', marginBottom: '40px', paddingBottom: '20px', borderBottom: '2px solid #000' }}><h1 style={{ fontSize: '32px', textTransform: 'uppercase', marginBottom: '10px' }}>{chapter.title}</h1><p style={{ fontSize: '14px', color: '#666' }}>Class {chapter.classLevel} &bull; {chapter.author || 'EnglishMastery'}</p></div>{chapter.units.map((unit, uIndex) => (<div key={uIndex} style={{ marginBottom: '50px', pageBreakInside: 'avoid' }}><h2 style={{ fontSize: '18px', borderBottom: '1px solid #ddd', paddingBottom: '5px', marginBottom: '20px', textTransform: 'uppercase' }}>Unit {uIndex + 1}: {unit.title}</h2><div style={{ marginBottom: '30px' }}>{unit.paragraphs.map((para, pIndex) => (<div key={pIndex} style={{ display: 'flex', marginBottom: '15px', gap: '20px' }}><div style={{ width: '50%', paddingRight: '15px', borderRight: '1px solid #eee', fontSize: '12px', lineHeight: '1.5' }}>{para.english}</div><div style={{ width: '50%', fontSize: '12px', lineHeight: '1.5', fontFamily: 'sans-serif' }}>{para.bengali}</div></div>))}</div></div>))}<div style={{ textAlign: 'center', fontSize: '10px', color: '#999', marginTop: '50px' }}>Downloaded from EnglishMastery</div></div></div>
       <ChapterChatbot
-              chapterId={chapter._id}
-              chapterTitle={chapter.title}
+            chapterId={chapter._id}
+            chapterTitle={chapter.title}
             />
     </div>
   );
 }
+
+// ----------------------------------------------------------------------
+// NEW COMPONENT: CHAPTER SKELETON LOADER
+// ----------------------------------------------------------------------
+const ChapterSkeleton = () => (
+  <div className="min-h-screen bg-white dark:bg-black text-zinc-900 dark:text-zinc-200">
+    {/* Header Skeleton */}
+    <div className="fixed top-0 inset-x-0 z-40 border-b border-zinc-200/50 dark:border-white/5 bg-white/60 dark:bg-black/60 backdrop-blur-md h-16 flex items-center px-6 justify-between">
+       <div className="flex items-center gap-4">
+          <div className="w-8 h-8 rounded-full bg-zinc-200 dark:bg-zinc-800 animate-pulse"/>
+          <div className="space-y-2">
+             <div className="w-20 h-3 rounded bg-zinc-200 dark:bg-zinc-800 animate-pulse"/>
+             <div className="w-40 h-4 rounded bg-zinc-200 dark:bg-zinc-800 animate-pulse"/>
+          </div>
+       </div>
+       <div className="w-24 h-8 rounded-full bg-zinc-200 dark:bg-zinc-800 animate-pulse"/>
+    </div>
+
+    <main className="max-w-5xl mx-auto px-6 pt-32 pb-20">
+       {/* Title Skeleton */}
+       <div className="flex flex-col items-center gap-4 mb-24">
+          <div className="w-32 h-6 rounded-full bg-zinc-200 dark:bg-zinc-800 animate-pulse"/>
+          <div className="w-3/4 h-12 rounded-xl bg-zinc-200 dark:bg-zinc-800 animate-pulse"/>
+       </div>
+
+       {/* Units Loop Skeleton */}
+       {[1, 2].map(i => (
+          <div key={i} className="mb-24">
+             {/* Unit Header */}
+             <div className="flex items-center gap-4 mb-8 border-b border-zinc-200 dark:border-zinc-800 pb-4">
+                <div className="w-10 h-10 rounded-xl bg-zinc-200 dark:bg-zinc-800 animate-pulse"/>
+                <div className="space-y-2">
+                   <div className="w-16 h-3 rounded bg-zinc-200 dark:bg-zinc-800 animate-pulse"/>
+                   <div className="w-64 h-6 rounded bg-zinc-200 dark:bg-zinc-800 animate-pulse"/>
+                </div>
+             </div>
+
+             {/* Paragraph Cards */}
+             <div className="space-y-6">
+                {[1, 2].map(j => (
+                   <div key={j} className="h-64 rounded-2xl bg-white dark:bg-[#0a0a0a] border border-zinc-200 dark:border-zinc-800 overflow-hidden grid md:grid-cols-2 animate-pulse">
+                      <div className="p-8 space-y-4">
+                         <div className="w-full h-4 rounded bg-zinc-200 dark:bg-zinc-800"/>
+                         <div className="w-3/4 h-4 rounded bg-zinc-200 dark:bg-zinc-800"/>
+                         <div className="w-5/6 h-4 rounded bg-zinc-200 dark:bg-zinc-800"/>
+                      </div>
+                      <div className="p-8 space-y-4 bg-zinc-50/50 dark:bg-black/20">
+                         <div className="w-full h-4 rounded bg-zinc-200 dark:bg-zinc-800"/>
+                         <div className="w-3/4 h-4 rounded bg-zinc-200 dark:bg-zinc-800"/>
+                      </div>
+                   </div>
+                ))}
+             </div>
+          </div>
+       ))}
+    </main>
+  </div>
+);
 
 // --- NEW COMPONENT: FLASHCARD RUNNER ---
 const FlashcardRunner = ({ cards, onClose }) => {
@@ -590,8 +749,6 @@ const FlashcardRunner = ({ cards, onClose }) => {
         if(isFlipped && !definition) {
             fetchDef();
         } else if (!isFlipped) {
-            // Optional: Delay clearing slightly so it doesn't vanish mid-flip if user flips back quickly
-            // But for now, keeping it simple is fine.
             const t = setTimeout(() => setDefinition(null), 300);
             return () => clearTimeout(t);
         }
@@ -660,7 +817,7 @@ const FlashcardRunner = ({ cards, onClose }) => {
                     >
                         {/* Front Side */}
                         <div
-                            className="absolute inset-0 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-3xl shadow-2xl flex flex-col items-center justify-center p-8"
+                            className="absolute inset-0 bg-white dark:bg-[#0a0a0a] border border-zinc-200 dark:border-zinc-800 rounded-3xl shadow-2xl flex flex-col items-center justify-center p-8"
                             style={{ backfaceVisibility: "hidden", WebkitBackfaceVisibility: "hidden" }}
                         >
                             <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-[0.2em] mb-4">Word</span>
@@ -794,7 +951,7 @@ const FamilyTree = ({ members, parentId = null }) => {
                             {spouse && (
                                 <>
                                     <div className="w-8 h-px bg-zinc-300 dark:bg-zinc-600 relative flex items-center justify-center">
-                                        <div className="p-1 bg-white dark:bg-zinc-900 rounded-full border border-zinc-200 dark:border-zinc-700"><Heart size={8} className="text-rose-400 fill-rose-400" /></div>
+                                        <div className="p-1 bg-white dark:bg-[#1a1a1a] rounded-full border border-zinc-200 dark:border-zinc-700"><Heart size={8} className="text-rose-400 fill-rose-400" /></div>
                                     </div>
                                     <FamilyMemberCard member={spouse} isSpouse={true} />
                                 </>
@@ -810,7 +967,7 @@ const FamilyTree = ({ members, parentId = null }) => {
 };
 
 const FamilyMemberCard = ({ member, isSpouse = false }) => (
-    <motion.div initial={{ scale: 0.9, opacity: 0 }} whileInView={{ scale: 1, opacity: 1 }} className={`flex flex-col items-center justify-center w-28 h-28 p-3 rounded-full shadow-sm border-2 transition-all z-10 bg-white dark:bg-zinc-900 ${isSpouse ? 'border-pink-100 dark:border-pink-900/30' : 'border-indigo-50 dark:border-indigo-900/30'}`}>
+    <motion.div initial={{ scale: 0.9, opacity: 0 }} whileInView={{ scale: 1, opacity: 1 }} className={`flex flex-col items-center justify-center w-28 h-28 p-3 rounded-full shadow-sm border-2 transition-all z-10 bg-white dark:bg-[#1a1a1a] ${isSpouse ? 'border-pink-100 dark:border-pink-900/30' : 'border-indigo-50 dark:border-indigo-900/30'}`}>
         <span className={`text-[9px] font-bold uppercase tracking-wider mb-1.5 text-center leading-none ${isSpouse ? 'text-pink-500' : 'text-indigo-500'}`}>{member.relation}</span>
         <h4 className="text-sm font-bold text-zinc-900 dark:text-zinc-100 text-center leading-tight mb-1 line-clamp-2">{member.name}</h4>
         {member.details && <span className="text-[9px] text-zinc-400 text-center leading-none px-1 mt-0.5">{member.details}</span>}
