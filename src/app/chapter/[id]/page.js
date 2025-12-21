@@ -38,21 +38,42 @@ const itemVariants = {
 // --- "SUBTLE GRAPH" BORDER (Vercel Style) ---
 const GraphBorder = ({ side = "left" }) => {
   const isLeft = side === "left";
-  // Position classes
   const containerClass = isLeft ? "left-0" : "right-0";
 
   return (
     <div className={`fixed ${containerClass} top-0 bottom-0 w-16 z-20 hidden xl:flex flex-col items-center bg-white/50 dark:bg-black/50 backdrop-blur-[2px] border-${side === 'left' ? 'r' : 'l'} border-zinc-200 dark:border-zinc-800`}>
-      {/* Inner Vertical Line */}
       <div className={`absolute top-0 bottom-0 ${isLeft ? "right-1" : "left-1"} w-px bg-zinc-200 dark:bg-zinc-800`}></div>
-
-      {/* The Subtle Graph Styling */}
       <div className="absolute inset-0 w-full h-full pointer-events-none opacity-40">
-          <div
-            className="absolute inset-0 bg-[linear-gradient(to_right,#8080801a_1px,transparent_1px),linear-gradient(to_bottom,#8080801a_1px,transparent_1px)] bg-[size:20px_20px]"
-          ></div>
+          <div className="absolute inset-0 bg-[linear-gradient(to_right,#8080801a_1px,transparent_1px),linear-gradient(to_bottom,#8080801a_1px,transparent_1px)] bg-[size:20px_20px]"></div>
       </div>
     </div>
+  );
+};
+
+// --- NEW PROFESSIONAL IMAGE COMPONENT ---
+const ProfessionalImage = ({ src, alt, className, priority = false }) => {
+  const [isLoading, setIsLoading] = useState(true);
+
+  return (
+    <>
+      {/* Skeleton / Loading State */}
+      {isLoading && (
+        <div className="absolute inset-0 z-0 flex items-center justify-center bg-zinc-100 dark:bg-zinc-900 animate-pulse">
+            <ImageIcon className="w-8 h-8 text-zinc-300 dark:text-zinc-700 opacity-50" />
+        </div>
+      )}
+
+      {/* Actual Image */}
+      <img
+        src={src}
+        alt={alt}
+        loading={priority ? "eager" : "lazy"}
+        onLoad={() => setIsLoading(false)}
+        className={`${className} ${
+          isLoading ? 'opacity-0 scale-105 blur-lg' : 'opacity-100 scale-100 blur-0'
+        } transition-all duration-700 ease-in-out`}
+      />
+    </>
   );
 };
 
@@ -261,20 +282,13 @@ export default function ChapterDetail() {
   return (
     <div className="min-h-screen bg-white dark:bg-[#050505] text-zinc-900 dark:text-zinc-200 font-sans selection:bg-indigo-500/30 selection:text-white relative overflow-x-hidden">
 
-      {/* --- BACKGROUND DESIGN (Vercel Style) --- */}
+      {/* --- BACKGROUND DESIGN --- */}
       <div className="fixed inset-0 z-0 pointer-events-none">
-         {/* 1. Base Grid - Crisp and Thin */}
-         <div
-           className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:40px_40px]"
-         ></div>
-
-         {/* 2. Secondary Pattern - Dotted Overlay */}
+         <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:40px_40px]"></div>
          <div className="absolute inset-0 opacity-20 dark:opacity-20" style={{
              backgroundImage: 'radial-gradient(#888 1px, transparent 1px)',
              backgroundSize: '40px 40px'
          }}></div>
-
-         {/* 3. Glowing Orbs - Cinematic Blur */}
          <div className="absolute top-[-20%] left-[20%] w-[500px] h-[500px] bg-indigo-500/10 dark:bg-indigo-500/20 blur-[100px] rounded-full mix-blend-multiply dark:mix-blend-screen opacity-50 animate-pulse-slow" />
          <div className="absolute bottom-[-20%] right-[20%] w-[600px] h-[600px] bg-violet-500/10 dark:bg-violet-500/20 blur-[120px] rounded-full mix-blend-multiply dark:mix-blend-screen opacity-50" />
       </div>
@@ -324,12 +338,13 @@ export default function ChapterDetail() {
                     initial={{ opacity: 0, scale: 0.98 }}
                     animate={{ opacity: 1, scale: 1 }}
                     transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
-                    className="relative w-full h-[55vh] min-h-[400px] rounded-[2rem] overflow-hidden shadow-2xl border border-zinc-200 dark:border-zinc-800 group"
+                    className="relative w-full h-[100vh] min-h-full rounded-4xl overflow-hidden shadow-2xl border border-zinc-200 dark:border-zinc-800 group"
                 >
-                    {/* Background Image with Slow Zoom */}
-                    <img
+                    {/* Professional Lazy Loaded Hero Image */}
+                    <ProfessionalImage
                         src={chapter.coverImage}
                         alt={chapter.title}
+                        priority={true} // Load eager for LCP
                         className="absolute inset-0 w-full h-full object-cover transition-transform duration-[20s] ease-linear group-hover:scale-110"
                     />
 
@@ -420,16 +435,18 @@ export default function ChapterDetail() {
                         {unit.paragraphs.map((para, pIndex) => (
                             <div key={pIndex} className="group relative bg-white dark:bg-[#0a0a0a] border border-zinc-200 dark:border-zinc-800 rounded-3xl overflow-hidden hover:border-zinc-300 dark:hover:border-zinc-700 transition-all duration-300 shadow-xl dark:shadow-2xl">
 
-                                {/* --- PARAGRAPH IMAGE DISPLAY --- */}
+                                {/* --- PARAGRAPH IMAGE DISPLAY (PROFESSIONAL LOADER) --- */}
                                 {para.image && (
                                     <div className="relative w-full h-64 md:h-96 bg-zinc-100 dark:bg-zinc-900 border-b border-zinc-100 dark:border-zinc-800 overflow-hidden">
-                                        <img
+
+                                        <ProfessionalImage
                                             src={para.image}
                                             alt={`Illustration for paragraph ${pIndex + 1}`}
                                             className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
                                         />
+
                                         {/* Gradient to blend image into card body */}
-                                        <div className="absolute inset-0 bg-gradient-to-t from-white dark:from-[#0a0a0a] via-transparent to-transparent opacity-80"></div>
+                                        <div className="absolute inset-0 bg-gradient-to-t from-white dark:from-[#0a0a0a] via-transparent to-transparent opacity-80 pointer-events-none"></div>
 
                                         <div className="absolute bottom-6 right-6 px-4 py-2 bg-white/80 dark:bg-black/60 backdrop-blur-md border border-zinc-200 dark:border-white/10 rounded-full flex items-center gap-2 text-xs font-bold text-zinc-800 dark:text-white shadow-lg">
                                             <ImageIcon size={14} className="text-indigo-500"/> Visual Context
@@ -523,7 +540,7 @@ export default function ChapterDetail() {
                                                                     </div>
                                                                 )}
 
-                                                                {/* (Activity render logic - simplified for length but retained) */}
+                                                                {/* (Activity render logic) */}
                                                                 {act.type === 'CHART_FILL' && (<div className="overflow-x-auto rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-[#1a1a1a]"><table className="w-full min-w-[500px] text-sm text-left"><thead className="bg-zinc-50 dark:bg-[#222] text-xs uppercase text-zinc-500 font-bold"><tr>{(act.columnHeaders || []).map((h, i) => (<th key={i} className="px-4 py-3 border-b border-zinc-200 dark:border-zinc-800 border-r last:border-r-0 border-zinc-200 dark:border-zinc-800">{h}</th>))}</tr></thead><tbody className="divide-y divide-zinc-100 dark:divide-zinc-800">{act.questions.map((q, qIdx) => (<tr key={qIdx}>{(q.options || []).map((cellData, colIdx) => { const { isInput, answer, content } = getChartParts(cellData); return (<td key={colIdx} className="p-3 border-r last:border-r-0 border-zinc-200 dark:border-zinc-800 align-top">{isInput ? (<div className="relative">{isRevealed ? (<div className="px-3 py-2 rounded bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 font-bold border border-emerald-100 dark:border-emerald-800">{answer}</div>) : (<input className="w-full bg-zinc-50 dark:bg-[#111] border border-zinc-200 dark:border-zinc-700 rounded px-3 py-2 outline-none focus:border-indigo-500 transition-all placeholder:text-zinc-400" placeholder="Type answer..."/>)}</div>) : (<span className="text-zinc-700 dark:text-zinc-300 font-medium">{content}</span>)}</td>); })}</tr>))}</tbody></table></div>)}
                                                                 {act.type === 'CAUSE_EFFECT' && (<div className="grid grid-cols-2 bg-lime-50 dark:bg-lime-900/10 border border-lime-100 dark:border-lime-900/20 rounded-t-xl"><div className="p-3 text-xs font-bold text-center text-lime-800 dark:text-lime-400 border-r border-lime-100 dark:border-lime-900/20 uppercase tracking-widest">{act.columnHeaders?.[0] || "Cause"}</div><div className="p-3 text-xs font-bold text-center text-lime-800 dark:text-lime-400 uppercase tracking-widest">{act.columnHeaders?.[1] || "Effect"}</div></div>)}
                                                                 {act.type === 'CAUSE_EFFECT' && (
@@ -535,21 +552,21 @@ export default function ChapterDetail() {
                                                                 {/* Standard Question Loop for other types */}
                                                                 {!['CAUSE_EFFECT', 'CHART_FILL'].includes(act.type) && act.questions.map((q, qIdx) => (
                                                                     <div key={qIdx} className="relative pb-4 last:pb-0 border-b last:border-0 border-dashed border-zinc-200 dark:border-zinc-800">
-                                                                        <div className="flex gap-4">
-                                                                            <span className="text-sm font-bold text-zinc-400 font-mono mt-0.5">{qIdx + 1}.</span>
-                                                                            <div className="w-full">
-                                                                                {!['MATCHING', 'UNDERLINE', 'UNDERLINE_CIRCLE', 'CATEGORIZE'].includes(act.type) && q.text && (<p className="text-base text-zinc-800 dark:text-zinc-200 mb-3 leading-snug">{cleanText(q.text)}</p>)}
+                                                                            <div className="flex gap-4">
+                                                                                <span className="text-sm font-bold text-zinc-400 font-mono mt-0.5">{qIdx + 1}.</span>
+                                                                                <div className="w-full">
+                                                                                    {!['MATCHING', 'UNDERLINE', 'UNDERLINE_CIRCLE', 'CATEGORIZE'].includes(act.type) && q.text && (<p className="text-base text-zinc-800 dark:text-zinc-200 mb-3 leading-snug">{cleanText(q.text)}</p>)}
 
-                                                                                {/* RENDERERS */}
-                                                                                {act.type === 'MCQ' && (<div className="grid grid-cols-1 sm:grid-cols-2 gap-3">{q.options?.map((opt, oIdx) => (<div key={oIdx} className={`px-4 py-3 rounded-lg text-sm border transition-all ${isRevealed && opt === q.correctAnswer ? 'bg-emerald-50 dark:bg-emerald-900/20 border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300 font-bold shadow-sm' : 'bg-white dark:bg-[#1a1a1a] border-zinc-200 dark:border-zinc-800 text-zinc-600 dark:text-zinc-400'}`}><span className="font-mono text-xs mr-2 opacity-50">{String.fromCharCode(97 + oIdx)})</span>{opt}</div>))}</div>)}
-                                                                                {act.type === 'TRUE_FALSE' && (<div className="flex gap-2">{isRevealed && <span className={`text-xs font-bold px-3 py-1 rounded-full border ${q.isTrue ? 'bg-emerald-100 dark:bg-emerald-900/20 border-emerald-200 dark:border-emerald-800 text-emerald-800 dark:text-emerald-300' : 'bg-rose-100 dark:bg-rose-900/20 border-rose-200 dark:border-rose-800 text-rose-800 dark:text-rose-300'}`}>{q.isTrue ? 'TRUE' : 'FALSE'}</span>} {q.supportingStatement && isRevealed && <p className="text-sm text-zinc-500 italic mt-1 border-l-2 border-zinc-300 pl-3">"{q.supportingStatement}"</p>}</div>)}
-                                                                                {(act.type === 'FILL_BLANKS' || act.type === 'QA' || act.type === 'WORD_BOX') && isRevealed && (<div className="mt-3 p-3 bg-emerald-50/50 dark:bg-emerald-900/10 border border-emerald-100 dark:border-emerald-800/30 rounded-lg"><p className="text-sm text-emerald-800 dark:text-emerald-300"><span className="font-bold mr-2 uppercase text-xs tracking-wider">Answer:</span> {q.correctAnswer}</p></div>)}
-                                                                                {act.type === 'REARRANGE' && (<div className="space-y-2">{!isRevealed ? ([...q.options].sort().map((opt, i) => (<div key={i} className="flex gap-3 items-start p-3 bg-white dark:bg-[#1a1a1a] border border-zinc-200 dark:border-zinc-800 rounded-lg"><span className="text-xs font-bold text-zinc-400 w-4 pt-0.5">{String.fromCharCode(65+i)}.</span><p className="text-sm text-zinc-600 dark:text-zinc-400">{opt}</p></div>))) : (q.options.map((opt, i) => (<div key={i} className="flex gap-3 items-start p-3 bg-emerald-50 dark:bg-emerald-900/10 border border-emerald-100 dark:border-emerald-800/30 rounded-lg"><span className="text-xs font-bold text-emerald-600 w-4 pt-0.5">{i+1}.</span><p className="text-sm text-zinc-800 dark:text-zinc-200 font-medium">{opt}</p></div>)))}</div>)}
-                                                                                {act.type === 'UNDERLINE' && (<div className="space-y-3"><p className="text-lg text-zinc-800 dark:text-zinc-100 mb-1 leading-snug">{cleanText(q.text)}</p>{isRevealed && (<div className="p-3 rounded-lg border bg-emerald-50/50 dark:bg-emerald-900/10 border-emerald-100 dark:border-emerald-800/30"><div className="flex items-center gap-2 text-[10px] font-bold text-emerald-600 uppercase mb-2"><CheckCircle2 size={12}/> Correct Answer:</div><div className="text-sm text-zinc-700 dark:text-zinc-300">{renderUnderlineAnswer(q.text)}</div></div>)}</div>)}
-                                                                                {act.type === 'MATCHING' && (<div className="flex items-center justify-between p-4 rounded-lg bg-zinc-50 dark:bg-[#1a1a1a] border border-zinc-200 dark:border-zinc-800"><span className="text-sm text-zinc-700 dark:text-zinc-300 font-medium">{q.leftItem}</span><div className="flex items-center gap-2 px-4"><div className="h-px w-8 bg-zinc-300 dark:bg-zinc-700"></div>{isRevealed ? <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-100 dark:bg-emerald-900/30 px-2 py-0.5 rounded border border-emerald-200 dark:border-emerald-800">MATCH</span> : <div className="w-2 h-2 rounded-full bg-zinc-300 dark:bg-zinc-700"></div>}<div className="h-px w-8 bg-zinc-300 dark:bg-zinc-700"></div></div><span className={`text-sm font-medium ${isRevealed ? 'text-zinc-900 dark:text-white' : 'blur-sm text-zinc-400 select-none'}`}>{q.rightItem}</span></div>)}
-                                                                                {act.type === 'CATEGORIZE' && (<div className="space-y-4"><p className="text-base text-zinc-800 dark:text-zinc-100 mb-1 leading-snug">{cleanText(q.text)}</p>{isRevealed && (<div className="mt-2 border border-zinc-200 dark:border-zinc-800 rounded-lg overflow-hidden"><div className="grid bg-zinc-50 dark:bg-[#1a1a1a] border-b border-zinc-200 dark:border-zinc-800" style={{ gridTemplateColumns: `repeat(${categoryHeaders.length}, 1fr)` }}>{categoryHeaders.map((header, hIdx) => (<div key={hIdx} className="p-3 text-xs font-bold text-center text-zinc-600 dark:text-zinc-300 border-r border-zinc-200 dark:border-zinc-800 last:border-0 uppercase tracking-wider">{header}</div>))}</div><div className="grid bg-white dark:bg-[#111]" style={{ gridTemplateColumns: `repeat(${categoryHeaders.length}, 1fr)` }}>{categoryHeaders.map((_, hIdx) => (<div key={hIdx} className="p-3 text-sm text-center border-r border-zinc-200 dark:border-zinc-800 last:border-0 min-h-[40px]">{getCategorizedWords(q.text, hIdx).map((word, wIdx) => (<span key={wIdx} className="block mb-1 text-emerald-600 dark:text-emerald-400 font-medium">{word}</span>))}</div>))}</div></div>)}</div>)}
+                                                                                    {/* RENDERERS */}
+                                                                                    {act.type === 'MCQ' && (<div className="grid grid-cols-1 sm:grid-cols-2 gap-3">{q.options?.map((opt, oIdx) => (<div key={oIdx} className={`px-4 py-3 rounded-lg text-sm border transition-all ${isRevealed && opt === q.correctAnswer ? 'bg-emerald-50 dark:bg-emerald-900/20 border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300 font-bold shadow-sm' : 'bg-white dark:bg-[#1a1a1a] border-zinc-200 dark:border-zinc-800 text-zinc-600 dark:text-zinc-400'}`}><span className="font-mono text-xs mr-2 opacity-50">{String.fromCharCode(97 + oIdx)})</span>{opt}</div>))}</div>)}
+                                                                                    {act.type === 'TRUE_FALSE' && (<div className="flex gap-2">{isRevealed && <span className={`text-xs font-bold px-3 py-1 rounded-full border ${q.isTrue ? 'bg-emerald-100 dark:bg-emerald-900/20 border-emerald-200 dark:border-emerald-800 text-emerald-800 dark:text-emerald-300' : 'bg-rose-100 dark:bg-rose-900/20 border-rose-200 dark:border-rose-800 text-rose-800 dark:text-rose-300'}`}>{q.isTrue ? 'TRUE' : 'FALSE'}</span>} {q.supportingStatement && isRevealed && <p className="text-sm text-zinc-500 italic mt-1 border-l-2 border-zinc-300 pl-3">"{q.supportingStatement}"</p>}</div>)}
+                                                                                    {(act.type === 'FILL_BLANKS' || act.type === 'QA' || act.type === 'WORD_BOX') && isRevealed && (<div className="mt-3 p-3 bg-emerald-50/50 dark:bg-emerald-900/10 border border-emerald-100 dark:border-emerald-800/30 rounded-lg"><p className="text-sm text-emerald-800 dark:text-emerald-300"><span className="font-bold mr-2 uppercase text-xs tracking-wider">Answer:</span> {q.correctAnswer}</p></div>)}
+                                                                                    {act.type === 'REARRANGE' && (<div className="space-y-2">{!isRevealed ? ([...q.options].sort().map((opt, i) => (<div key={i} className="flex gap-3 items-start p-3 bg-white dark:bg-[#1a1a1a] border border-zinc-200 dark:border-zinc-800 rounded-lg"><span className="text-xs font-bold text-zinc-400 w-4 pt-0.5">{String.fromCharCode(65+i)}.</span><p className="text-sm text-zinc-600 dark:text-zinc-400">{opt}</p></div>))) : (q.options.map((opt, i) => (<div key={i} className="flex gap-3 items-start p-3 bg-emerald-50 dark:bg-emerald-900/10 border border-emerald-100 dark:border-emerald-800/30 rounded-lg"><span className="text-xs font-bold text-emerald-600 w-4 pt-0.5">{i+1}.</span><p className="text-sm text-zinc-800 dark:text-zinc-200 font-medium">{opt}</p></div>)))}</div>)}
+                                                                                    {act.type === 'UNDERLINE' && (<div className="space-y-3"><p className="text-lg text-zinc-800 dark:text-zinc-100 mb-1 leading-snug">{cleanText(q.text)}</p>{isRevealed && (<div className="p-3 rounded-lg border bg-emerald-50/50 dark:bg-emerald-900/10 border-emerald-100 dark:border-emerald-800/30"><div className="flex items-center gap-2 text-[10px] font-bold text-emerald-600 uppercase mb-2"><CheckCircle2 size={12}/> Correct Answer:</div><div className="text-sm text-zinc-700 dark:text-zinc-300">{renderUnderlineAnswer(q.text)}</div></div>)}</div>)}
+                                                                                    {act.type === 'MATCHING' && (<div className="flex items-center justify-between p-4 rounded-lg bg-zinc-50 dark:bg-[#1a1a1a] border border-zinc-200 dark:border-zinc-800"><span className="text-sm text-zinc-700 dark:text-zinc-300 font-medium">{q.leftItem}</span><div className="flex items-center gap-2 px-4"><div className="h-px w-8 bg-zinc-300 dark:bg-zinc-700"></div>{isRevealed ? <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-100 dark:bg-emerald-900/30 px-2 py-0.5 rounded border border-emerald-200 dark:border-emerald-800">MATCH</span> : <div className="w-2 h-2 rounded-full bg-zinc-300 dark:bg-zinc-700"></div>}<div className="h-px w-8 bg-zinc-300 dark:bg-zinc-700"></div></div><span className={`text-sm font-medium ${isRevealed ? 'text-zinc-900 dark:text-white' : 'blur-sm text-zinc-400 select-none'}`}>{q.rightItem}</span></div>)}
+                                                                                    {act.type === 'CATEGORIZE' && (<div className="space-y-4"><p className="text-base text-zinc-800 dark:text-zinc-100 mb-1 leading-snug">{cleanText(q.text)}</p>{isRevealed && (<div className="mt-2 border border-zinc-200 dark:border-zinc-800 rounded-lg overflow-hidden"><div className="grid bg-zinc-50 dark:bg-[#1a1a1a] border-b border-zinc-200 dark:border-zinc-800" style={{ gridTemplateColumns: `repeat(${categoryHeaders.length}, 1fr)` }}>{categoryHeaders.map((header, hIdx) => (<div key={hIdx} className="p-3 text-xs font-bold text-center text-zinc-600 dark:text-zinc-300 border-r border-zinc-200 dark:border-zinc-800 last:border-0 uppercase tracking-wider">{header}</div>))}</div><div className="grid bg-white dark:bg-[#111]" style={{ gridTemplateColumns: `repeat(${categoryHeaders.length}, 1fr)` }}>{categoryHeaders.map((_, hIdx) => (<div key={hIdx} className="p-3 text-sm text-center border-r border-zinc-200 dark:border-zinc-800 last:border-0 min-h-[40px]">{getCategorizedWords(q.text, hIdx).map((word, wIdx) => (<span key={wIdx} className="block mb-1 text-emerald-600 dark:text-emerald-400 font-medium">{word}</span>))}</div>))}</div></div>)}</div>)}
+                                                                                </div>
                                                                             </div>
-                                                                        </div>
                                                                     </div>
                                                                 ))}
                                                             </div>
