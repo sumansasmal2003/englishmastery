@@ -63,6 +63,7 @@ const ActivitySchema = new mongoose.Schema({
 const ContentBlockSchema = new mongoose.Schema({
   english: { type: String, required: true },
   bengali: { type: String, required: true },
+  image: { type: String },
 });
 
 const UnitSchema = new mongoose.Schema({
@@ -78,6 +79,7 @@ const ChapterSchema = new mongoose.Schema({
   author: { type: String },
   chapterNumber: Number,
   units: [UnitSchema],
+  coverImage: { type: String },
 }, { timestamps: true });
 
 export default mongoose.models.Chapter || mongoose.model("Chapter", ChapterSchema);

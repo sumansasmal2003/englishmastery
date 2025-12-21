@@ -5,7 +5,9 @@ import {
   AlertCircle,
   CheckCircle2,
   X,
-  Edit3
+  Edit3,
+  Image as ImageIcon, // Renamed to avoid conflict
+  UploadCloud
 } from "lucide-react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
@@ -18,6 +20,41 @@ import { InputLabel, ThemedInput, ThemedTextarea, SidebarSkeleton } from "./comp
 import { signOut } from "next-auth/react";
 import { LogOut } from "lucide-react";
 
+// --- NEW COMPONENT: CIRCULAR PROGRESS LOADER ---
+const CircularProgress = ({ percentage, size = 18, strokeWidth = 2.5 }) => {
+  const radius = (size - strokeWidth) / 2;
+  const circumference = radius * 2 * Math.PI;
+  const offset = circumference - (percentage / 100) * circumference;
+
+  return (
+    <div className="relative flex items-center justify-center">
+      <svg width={size} height={size} className="transform -rotate-90">
+        <circle
+          cx={size / 2}
+          cy={size / 2}
+          r={radius}
+          stroke="currentColor"
+          strokeWidth={strokeWidth}
+          fill="transparent"
+          className="text-zinc-200 dark:text-zinc-700"
+        />
+        <circle
+          cx={size / 2}
+          cy={size / 2}
+          r={radius}
+          stroke="currentColor"
+          strokeWidth={strokeWidth}
+          fill="transparent"
+          strokeDasharray={circumference}
+          strokeDashoffset={offset}
+          strokeLinecap="round"
+          className="text-indigo-600 dark:text-indigo-400 transition-all duration-200 ease-linear"
+        />
+      </svg>
+    </div>
+  );
+};
+
 export default function AdminPanel() {
   const [activeTab, setActiveTab] = useState("chapter");
   const [loading, setLoading] = useState(false);
@@ -28,13 +65,18 @@ export default function AdminPanel() {
   const [editingId, setEditingId] = useState(null);
   const [showTestModal, setShowTestModal] = useState(false);
 
+  // --- UPLOAD STATE ---
+  // Stores which item is currently uploading (e.g., 'cover' or 'u-0-p-1') and the progress %
+  const [uploadState, setUploadState] = useState({ target: null, progress: 0 });
+
   // --- Initial States ---
   const initialChapterState = {
     classLevel: 5,
     title: "",
     author: "",
     chapterNumber: 1,
-    units: [{ title: "Unit 1", paragraphs: [{ english: "", bengali: "" }], activities: [], writings: [] }],
+    coverImage: "",
+    units: [{ title: "Unit 1", paragraphs: [{ english: "", bengali: "", image: "" }], activities: [], writings: [] }],
   };
 
   const initialGrammarState = {
@@ -76,9 +118,10 @@ export default function AdminPanel() {
     if (activeTab === "chapter") {
         const safeItem = {
             ...item,
+            coverImage: item.coverImage || "",
             units: item.units?.map(u => ({
                 ...u,
-                paragraphs: u.paragraphs || [],
+                paragraphs: u.paragraphs?.map(p => ({ ...p, image: p.image || "" })) || [],
                 activities: u.activities?.map(a => ({
                     ...a,
                     questions: a.questions || [],
@@ -94,6 +137,71 @@ export default function AdminPanel() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
+  // --- CLOUDINARY UPLOAD WITH PROGRESS ---
+  const uploadToCloudinary = (file, targetId) => {
+    return new Promise((resolve, reject) => {
+      if (!file) return reject("No file");
+
+      if (!process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || !process.env.NEXT_PUBLIC_CLOUDINARY_PRESET) {
+          showNotification('error', 'Cloudinary keys missing');
+          return reject("Config missing");
+      }
+
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("upload_preset", process.env.NEXT_PUBLIC_CLOUDINARY_PRESET);
+
+      const xhr = new XMLHttpRequest();
+      xhr.open("POST", `https://api.cloudinary.com/v1_1/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}/image/upload`);
+
+      // Track Progress
+      xhr.upload.onprogress = (e) => {
+        if (e.lengthComputable) {
+          const percent = Math.round((e.loaded / e.total) * 100);
+          setUploadState({ target: targetId, progress: percent });
+        }
+      };
+
+      xhr.onload = () => {
+        if (xhr.status === 200) {
+          const data = JSON.parse(xhr.responseText);
+          setUploadState({ target: null, progress: 0 }); // Reset on success
+          resolve(data.secure_url);
+        } else {
+          setUploadState({ target: null, progress: 0 });
+          reject("Upload failed");
+        }
+      };
+
+      xhr.onerror = () => {
+        setUploadState({ target: null, progress: 0 });
+        reject("Network error");
+      };
+
+      xhr.send(formData);
+    });
+  };
+
+  // --- HANDLERS ---
+  const handleCoverImageUpload = async (file) => {
+      try {
+          const url = await uploadToCloudinary(file, 'cover');
+          setChapterForm(prev => ({ ...prev, coverImage: url }));
+      } catch (e) {
+          showNotification('error', 'Failed to upload cover image');
+      }
+  };
+
+  const handleParagraphImageUpload = async (unitIdx, pIdx, file) => {
+      const targetId = `u-${unitIdx}-p-${pIdx}`;
+      try {
+          const url = await uploadToCloudinary(file, targetId);
+          updateParagraph(unitIdx, pIdx, 'image', url);
+      } catch (e) {
+          showNotification('error', 'Failed to upload image');
+      }
+  };
+
   // =========================================================================
   // CORE HANDLERS: UNIT & PARAGRAPHS
   // =========================================================================
@@ -102,7 +210,7 @@ export default function AdminPanel() {
   const updateUnitTitle = (i, v) => { const u = [...chapterForm.units]; u[i].title = v; setChapterForm({ ...chapterForm, units: u }); };
   const removeUnit = (i) => { const u = [...chapterForm.units]; u.splice(i, 1); setChapterForm({ ...chapterForm, units: u }); };
 
-  const addParagraph = (i) => { const u = [...chapterForm.units]; u[i].paragraphs.push({english:"",bengali:""}); setChapterForm({...chapterForm, units:u}); };
+  const addParagraph = (i) => { const u = [...chapterForm.units]; u[i].paragraphs.push({english:"",bengali:"", image: ""}); setChapterForm({...chapterForm, units:u}); };
   const updateParagraph = (i, p, f, v) => { const u = [...chapterForm.units]; u[i].paragraphs[p][f] = v; setChapterForm({...chapterForm, units:u}); };
   const removeParagraph = (i, p) => { const u = [...chapterForm.units]; u[i].paragraphs.splice(p, 1); setChapterForm({...chapterForm, units:u}); };
 
@@ -213,7 +321,12 @@ export default function AdminPanel() {
 
   // --- SUBMIT ---
   const handleSubmit = async (e) => {
-    e.preventDefault(); setLoading(true);
+    e.preventDefault();
+    if (uploadState.target) {
+        showNotification("error", "Please wait for uploads to finish.");
+        return;
+    }
+    setLoading(true);
     const method = editingId ? "PUT" : "POST";
     const endpoint = activeTab === "chapter" ? "/api/chapters" : "/api/grammar";
     let payload = activeTab === "chapter" ? chapterForm : grammarForm;
@@ -309,6 +422,34 @@ export default function AdminPanel() {
                                         <div className="col-span-1"><InputLabel>Chapter No.</InputLabel><ThemedInput type="number" value={chapterForm.chapterNumber} onChange={(e) => setChapterForm({...chapterForm, chapterNumber: e.target.value})} /></div>
                                         <div className="col-span-2"><InputLabel>Author Name</InputLabel><ThemedInput value={chapterForm.author} onChange={(e) => setChapterForm({...chapterForm, author: e.target.value})} /></div>
                                         <div className="col-span-4"><InputLabel>Chapter Title</InputLabel><ThemedInput value={chapterForm.title} onChange={(e) => setChapterForm({...chapterForm, title: e.target.value})} className="text-lg font-medium" /></div>
+
+                                        {/* Cover Image Upload */}
+                                        <div className="col-span-4">
+                                            <InputLabel>Cover Image (Optional)</InputLabel>
+                                            <div className="flex items-center gap-4 mt-2">
+                                                {chapterForm.coverImage && (
+                                                    <div className="relative w-20 h-20 rounded-lg overflow-hidden border border-zinc-200 dark:border-zinc-700 group">
+                                                        <img src={chapterForm.coverImage} alt="Cover" className="w-full h-full object-cover"/>
+                                                        <button type="button" onClick={() => setChapterForm(prev => ({...prev, coverImage: ""}))} className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity text-white"><Trash2 size={16}/></button>
+                                                    </div>
+                                                )}
+                                                <label className={`flex items-center gap-2 px-4 py-2 bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 rounded-lg cursor-pointer transition-colors text-xs font-bold text-zinc-600 dark:text-zinc-300 ${uploadState.target ? 'opacity-50 cursor-not-allowed' : ''}`}>
+                                                    {/* GEMINI-LIKE LOADER */}
+                                                    {uploadState.target === 'cover' ? (
+                                                        <div className="flex items-center gap-2 text-indigo-600 dark:text-indigo-400">
+                                                            <CircularProgress percentage={uploadState.progress} />
+                                                            <span>{uploadState.progress}%</span>
+                                                        </div>
+                                                    ) : (
+                                                        <>
+                                                            <UploadCloud size={14}/>
+                                                            <span>{chapterForm.coverImage ? "Change Cover" : "Upload Cover"}</span>
+                                                        </>
+                                                    )}
+                                                    <input type="file" accept="image/*" className="hidden" onChange={(e) => handleCoverImageUpload(e.target.files[0])} disabled={!!uploadState.target} />
+                                                </label>
+                                            </div>
+                                        </div>
                                     </div>
                                 </section>
 
@@ -324,11 +465,41 @@ export default function AdminPanel() {
                                             <div className="space-y-5 mb-8">
                                                 <h3 className="text-xs font-bold text-zinc-400 uppercase tracking-widest flex items-center gap-2"><AlignLeft size={14}/> Text Content</h3>
                                                 {unit.paragraphs?.map((p, pIdx) => (
-                                                    <div key={pIdx} className="grid md:grid-cols-2 gap-4 group">
-                                                        <ThemedTextarea value={p.english} onChange={(e) => updateParagraph(uIdx, pIdx, 'english', e.target.value)} placeholder="English text..." />
-                                                        <div className="relative">
-                                                            <ThemedTextarea value={p.bengali} onChange={(e) => updateParagraph(uIdx, pIdx, 'bengali', e.target.value)} placeholder="Bengali translation..." />
-                                                            <button type="button" onClick={() => removeParagraph(uIdx, pIdx)} className="absolute top-2 right-2 p-1 text-zinc-300 hover:text-black dark:hover:text-white opacity-0 group-hover:opacity-100 transition-opacity"><X size={14}/></button>
+                                                    <div key={pIdx} className="space-y-3 group bg-zinc-50/50 dark:bg-zinc-900/20 p-4 rounded-xl border border-zinc-100 dark:border-zinc-800/50">
+                                                        <div className="grid md:grid-cols-2 gap-4">
+                                                            <ThemedTextarea value={p.english} onChange={(e) => updateParagraph(uIdx, pIdx, 'english', e.target.value)} placeholder="English text..." />
+                                                            <div className="relative">
+                                                                <ThemedTextarea value={p.bengali} onChange={(e) => updateParagraph(uIdx, pIdx, 'bengali', e.target.value)} placeholder="Bengali translation..." />
+                                                                <button type="button" onClick={() => removeParagraph(uIdx, pIdx)} className="absolute top-2 right-2 p-1 text-zinc-300 hover:text-black dark:hover:text-white hover:bg-zinc-200 dark:hover:bg-zinc-800 rounded transition-all"><X size={14}/></button>
+                                                            </div>
+                                                        </div>
+                                                        {/* Paragraph Image Upload */}
+                                                        <div className="flex items-center gap-3 pt-2 border-t border-dashed border-zinc-200 dark:border-zinc-800">
+                                                            {p.image ? (
+                                                                <div className="flex items-center gap-3 p-1.5 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg">
+                                                                    <img src={p.image} alt="Paragraph visual" className="w-12 h-12 object-cover rounded-md"/>
+                                                                    <div className="flex flex-col">
+                                                                        <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400">Image Attached</span>
+                                                                        <button type="button" onClick={() => updateParagraph(uIdx, pIdx, 'image', "")} className="text-[10px] text-red-500 hover:underline text-left">Remove</button>
+                                                                    </div>
+                                                                </div>
+                                                            ) : (
+                                                                <label className={`flex items-center gap-2 px-3 py-1.5 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-md cursor-pointer hover:border-zinc-400 transition-all text-[10px] font-bold text-zinc-500 hover:text-black dark:hover:text-white ${uploadState.target ? 'opacity-50 cursor-not-allowed' : ''}`}>
+                                                                    {/* GEMINI-LIKE LOADER */}
+                                                                    {uploadState.target === `u-${uIdx}-p-${pIdx}` ? (
+                                                                        <div className="flex items-center gap-2 text-indigo-600 dark:text-indigo-400">
+                                                                            <CircularProgress percentage={uploadState.progress} size={14} strokeWidth={2} />
+                                                                            <span>{uploadState.progress}%</span>
+                                                                        </div>
+                                                                    ) : (
+                                                                        <>
+                                                                            <ImageIcon size={12}/>
+                                                                            <span>Add Illustration</span>
+                                                                        </>
+                                                                    )}
+                                                                    <input type="file" accept="image/*" className="hidden" onChange={(e) => handleParagraphImageUpload(uIdx, pIdx, e.target.files[0])} disabled={!!uploadState.target} />
+                                                                </label>
+                                                            )}
                                                         </div>
                                                     </div>
                                                 ))}
@@ -405,7 +576,7 @@ export default function AdminPanel() {
                         </AnimatePresence>
                     )}
 
-                    {/* Grammar Form (Simplified for this view) */}
+                    {/* Grammar Form */}
                     {activeTab === "grammar" && (
                         <AnimatePresence mode="wait">
                             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-10">
@@ -461,8 +632,8 @@ export default function AdminPanel() {
         <div className="bg-white/90 dark:bg-zinc-900/90 backdrop-blur-md border border-zinc-200 dark:border-zinc-800 p-2 pl-6 rounded-full shadow-2xl flex items-center gap-4 pointer-events-auto">
             <span className="text-xs text-zinc-500 font-medium hidden sm:inline">{editingId ? "Updating Content..." : "Creating New Content..."}</span>
             <div className="h-4 w-px bg-zinc-200 dark:bg-zinc-700 hidden sm:block"></div>
-            <button onClick={handleSubmit} disabled={loading} className={`flex items-center gap-2 px-6 py-2.5 bg-black dark:bg-white text-white dark:text-black text-sm font-bold rounded-full hover:scale-105 active:scale-95 transition-all ${loading ? 'opacity-80 cursor-not-allowed' : ''}`}>
-                {loading ? <Loader2 size={16} className="animate-spin"/> : <Save size={16} />}
+            <button onClick={handleSubmit} disabled={loading || !!uploadState.target} className={`flex items-center gap-2 px-6 py-2.5 bg-black dark:bg-white text-white dark:text-black text-sm font-bold rounded-full hover:scale-105 active:scale-95 transition-all ${loading || !!uploadState.target ? 'opacity-80 cursor-not-allowed' : ''}`}>
+                {loading || !!uploadState.target ? <Loader2 size={16} className="animate-spin"/> : <Save size={16} />}
                 <span>{editingId ? 'Update Changes' : 'Publish Now'}</span>
             </button>
         </div>
