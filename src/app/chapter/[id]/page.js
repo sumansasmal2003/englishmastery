@@ -50,7 +50,7 @@ const GraphBorder = ({ side = "left" }) => {
   );
 };
 
-// --- NEW PROFESSIONAL IMAGE COMPONENT ---
+// --- PROFESSIONAL IMAGE COMPONENT ---
 const ProfessionalImage = ({ src, alt, className, priority = false }) => {
   const [isLoading, setIsLoading] = useState(true);
 
@@ -112,8 +112,20 @@ export default function ChapterDetail() {
         const grammarData = await grammarRes.json();
 
         if (chapterData.success) {
-            setChapter(chapterData.data);
-            generateFlashcards(chapterData.data);
+            const data = chapterData.data;
+            setChapter(data);
+            generateFlashcards(data);
+
+            // --- DYNAMIC TITLE UPDATE ---
+            // Format: "Title [- Author] | Class X"
+            let titleStr = data.title;
+            // Only append author if it exists and is not "N/A" (case-insensitive check)
+            if (data.author && data.author.trim().toUpperCase() !== 'N/A') {
+                titleStr += ` - ${data.author}`;
+            }
+            titleStr += ` | Class ${data.classLevel}`;
+            document.title = titleStr;
+            // ----------------------------
         }
         if (grammarData.success) setGrammarList(grammarData.data || []);
 
@@ -338,7 +350,7 @@ export default function ChapterDetail() {
                     initial={{ opacity: 0, scale: 0.98 }}
                     animate={{ opacity: 1, scale: 1 }}
                     transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
-                    className="relative w-full h-[100vh] min-h-full rounded-4xl overflow-hidden shadow-2xl border border-zinc-200 dark:border-zinc-800 group"
+                    className="relative w-full h-[100vh] min-h-full rounded-[2rem] overflow-hidden shadow-2xl border border-zinc-200 dark:border-zinc-800 group"
                 >
                     {/* Professional Lazy Loaded Hero Image */}
                     <ProfessionalImage
@@ -439,10 +451,11 @@ export default function ChapterDetail() {
                                 {para.image && (
                                     <div className="relative w-full h-64 md:h-96 bg-zinc-100 dark:bg-zinc-900 border-b border-zinc-100 dark:border-zinc-800 overflow-hidden">
 
+                                        {/* CHANGED to object-contain */}
                                         <ProfessionalImage
                                             src={para.image}
                                             alt={`Illustration for paragraph ${pIndex + 1}`}
-                                            className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                                            className="w-full h-full object-contain transition-transform duration-700 group-hover:scale-105"
                                         />
 
                                         {/* Gradient to blend image into card body */}
@@ -594,7 +607,7 @@ export default function ChapterDetail() {
                                         <div className="absolute top-0 right-0 p-32 bg-gradient-to-br from-rose-500/5 to-transparent rounded-full blur-3xl -mr-16 -mt-16 pointer-events-none group-hover:bg-rose-500/10 transition-colors duration-500"></div>
 
                                         <div className="mb-8 relative z-10">
-                                            <span className="inline-block px-3 py-1 rounded-full bg-rose-50 dark:bg-rose-900/20 text-rose-600 dark:text-rose-400 text-[10px] font-bold tracking-wider uppercase mb-4 border border-rose-100 dark:border-rose-900/30 shadow-sm">{write.type.replace(/_/g, ' ')}</span>
+                                            <span className="inline-block px-3 py-1 rounded-full bg-rose-50 dark:bg-rose-900/20 text-rose-600 dark:text-rose-400 text-[10px] font-bold tracking-wider uppercase mb-4 border border-rose-100 dark:border-rose-900/30 shadow-sm">{write.type.replace('_', ' ')}</span>
                                             <h4 className="text-2xl font-bold text-zinc-900 dark:text-zinc-100 leading-snug">{write.question}</h4>
                                         </div>
 
