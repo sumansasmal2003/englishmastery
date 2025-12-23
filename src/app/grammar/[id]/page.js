@@ -4,8 +4,35 @@ import { useParams, useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   ArrowLeft, BookOpen, Loader2, PenTool, Lightbulb, Sparkles,
-  BrainCircuit, CheckCircle2, XCircle, Trophy, Download
+  BrainCircuit, CheckCircle2, XCircle, Trophy, Download, ImageIcon, Calendar, UserCircle2
 } from "lucide-react";
+
+// --- PROFESSIONAL IMAGE COMPONENT ---
+const ProfessionalImage = ({ src, alt, className, priority = false }) => {
+  const [isLoading, setIsLoading] = useState(true);
+
+  return (
+    <>
+      {/* Skeleton / Loading State */}
+      {isLoading && (
+        <div className="absolute inset-0 z-0 flex items-center justify-center bg-zinc-100 dark:bg-zinc-900 animate-pulse">
+            <ImageIcon className="w-8 h-8 text-zinc-300 dark:text-zinc-700 opacity-50" />
+        </div>
+      )}
+
+      {/* Actual Image */}
+      <img
+        src={src}
+        alt={alt}
+        loading={priority ? "eager" : "lazy"}
+        onLoad={() => setIsLoading(false)}
+        className={`${className} ${
+          isLoading ? 'opacity-0 scale-105 blur-lg' : 'opacity-100 scale-100 blur-0'
+        } transition-all duration-700 ease-in-out`}
+      />
+    </>
+  );
+};
 
 export default function GrammarDetail() {
   const { id } = useParams();
@@ -28,7 +55,10 @@ export default function GrammarDetail() {
       try {
         const res = await fetch(`/api/grammar/${id}`);
         const data = await res.json();
-        if (data.success) setTopic(data.data);
+        if (data.success) {
+            setTopic(data.data);
+            document.title = `${data.data.topic} | Grammar Reference`; // Dynamic Title
+        }
       } catch (error) {
         console.error("Error:", error);
       } finally {
@@ -103,7 +133,7 @@ export default function GrammarDetail() {
 
       {/* Header */}
       <header className="fixed top-0 inset-x-0 z-40 border-b border-zinc-200/50 dark:border-white/5 bg-white/60 dark:bg-black/60 backdrop-blur-md supports-[backdrop-filter]:bg-white/60">
-        <div className="max-w-5xl mx-auto px-6 h-16 flex items-center justify-between">
+        <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
             <div className="flex items-center gap-4">
                 <button onClick={() => router.back()} className="p-2 -ml-2 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-full text-zinc-500 transition-colors">
                     <ArrowLeft size={18} />
@@ -142,14 +172,69 @@ export default function GrammarDetail() {
 
       <main className="relative z-10 max-w-5xl mx-auto px-6 pt-32 pb-20">
 
-        {/* Title Card */}
-        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="mb-24 text-center">
-            <div className="inline-flex items-center justify-center w-14 h-14 bg-emerald-50 dark:bg-emerald-500/10 rounded-2xl text-emerald-600 dark:text-emerald-400 mb-6 shadow-sm border border-emerald-100 dark:border-emerald-500/20">
-                <PenTool size={24} />
-            </div>
-            <h1 className="text-4xl md:text-6xl font-extrabold text-zinc-900 dark:text-white tracking-tight mb-6 leading-tight">{topic.topic}</h1>
-            {topic.description && <p className="text-lg text-zinc-500 dark:text-zinc-400 max-w-2xl mx-auto leading-relaxed">{topic.description}</p>}
-        </motion.div>
+        {/* --- DYNAMIC HERO SECTION --- */}
+        {topic.coverImage ? (
+            <motion.div
+                initial={{ opacity: 0, scale: 0.98 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
+                className="relative w-full h-[100vh] min-h-full rounded-[2rem] overflow-hidden shadow-2xl border border-zinc-200 dark:border-zinc-800 group mb-24"
+            >
+                {/* Professional Lazy Loaded Hero Image - CHANGED to object-cover */}
+                <ProfessionalImage
+                    src={topic.coverImage}
+                    alt={topic.topic}
+                    priority={true}
+                    className="absolute inset-0 w-full h-full object-cover transition-transform duration-[20s] ease-linear group-hover:scale-110"
+                />
+
+                {/* Gradient Overlay */}
+                <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent opacity-90 pointer-events-none"></div>
+
+                {/* Content Positioned Bottom-Left */}
+                <div className="absolute bottom-0 left-0 p-8 md:p-14 w-full max-w-4xl space-y-6">
+                    <motion.div
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.3 }}
+                        className="flex flex-wrap items-center gap-3"
+                    >
+                        <span className="px-3 py-1 bg-white/20 backdrop-blur-md border border-white/10 rounded-full text-xs font-bold text-white uppercase tracking-wider">
+                            Grammar
+                        </span>
+                        <span className="w-1.5 h-1.5 rounded-full bg-white/50"></span>
+                        <span className="text-zinc-300 text-xs font-medium uppercase tracking-wider">Reference</span>
+                    </motion.div>
+
+                    <motion.h1
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.4 }}
+                        className="text-4xl md:text-6xl lg:text-7xl font-extrabold text-white tracking-tight leading-[1.1] drop-shadow-lg"
+                    >
+                        {topic.topic}
+                    </motion.h1>
+
+                    <motion.p
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        transition={{ delay: 0.5 }}
+                        className="text-lg text-zinc-300 max-w-2xl leading-relaxed"
+                    >
+                        {topic.description}
+                    </motion.p>
+                </div>
+            </motion.div>
+        ) : (
+            // Fallback Title Card
+            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="mb-24 text-center">
+                <div className="inline-flex items-center justify-center w-14 h-14 bg-emerald-50 dark:bg-emerald-500/10 rounded-2xl text-emerald-600 dark:text-emerald-400 mb-6 shadow-sm border border-emerald-100 dark:border-emerald-500/20">
+                    <PenTool size={24} />
+                </div>
+                <h1 className="text-4xl md:text-6xl font-extrabold text-zinc-900 dark:text-white tracking-tight mb-6 leading-tight">{topic.topic}</h1>
+                {topic.description && <p className="text-lg text-zinc-500 dark:text-zinc-400 max-w-2xl mx-auto leading-relaxed">{topic.description}</p>}
+            </motion.div>
+        )}
 
         {/* Sections Loop */}
         <div className="space-y-16">

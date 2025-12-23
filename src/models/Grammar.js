@@ -15,6 +15,7 @@ const GrammarSchema = new mongoose.Schema({
   // classLevel removed - Grammar is now global
   topic: { type: String, required: true, unique: true }, // Ensure topic names are unique
   description: String,
+  coverImage: { type: String },
   sections: [SectionSchema],
 }, { timestamps: true });
 

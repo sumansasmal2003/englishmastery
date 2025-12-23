@@ -6,7 +6,7 @@ import {
   CheckCircle2,
   X,
   Edit3,
-  Image as ImageIcon, // Renamed to avoid conflict
+  Image as ImageIcon,
   UploadCloud
 } from "lucide-react";
 import Link from "next/link";
@@ -66,7 +66,6 @@ export default function AdminPanel() {
   const [showTestModal, setShowTestModal] = useState(false);
 
   // --- UPLOAD STATE ---
-  // Stores which item is currently uploading (e.g., 'cover' or 'u-0-p-1') and the progress %
   const [uploadState, setUploadState] = useState({ target: null, progress: 0 });
 
   // --- Initial States ---
@@ -82,6 +81,7 @@ export default function AdminPanel() {
   const initialGrammarState = {
     topic: "",
     description: "",
+    coverImage: "", // <--- Added coverImage here
     sections: [{ title: "Rule 1", content: "", examples: [{ sentence: "", explanation: "" }] }]
   };
 
@@ -132,7 +132,7 @@ export default function AdminPanel() {
         };
         setChapterForm(safeItem);
     } else {
-        setGrammarForm({ ...item });
+        setGrammarForm({ ...item, coverImage: item.coverImage || "" }); // <--- Ensure coverImage is loaded
     }
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
@@ -186,7 +186,12 @@ export default function AdminPanel() {
   const handleCoverImageUpload = async (file) => {
       try {
           const url = await uploadToCloudinary(file, 'cover');
-          setChapterForm(prev => ({ ...prev, coverImage: url }));
+          // UPDATED: Logic to handle both forms
+          if (activeTab === "chapter") {
+              setChapterForm(prev => ({ ...prev, coverImage: url }));
+          } else {
+              setGrammarForm(prev => ({ ...prev, coverImage: url }));
+          }
       } catch (e) {
           showNotification('error', 'Failed to upload cover image');
       }
@@ -215,7 +220,7 @@ export default function AdminPanel() {
   const removeParagraph = (i, p) => { const u = [...chapterForm.units]; u[i].paragraphs.splice(p, 1); setChapterForm({...chapterForm, units:u}); };
 
   // =========================================================================
-  // BRIDGE HANDLERS: ACTIVITIES (Passed to Child Component)
+  // BRIDGE HANDLERS: ACTIVITIES
   // =========================================================================
 
   const addActivityGroup = (unitIdx, type) => {
@@ -258,7 +263,7 @@ export default function AdminPanel() {
   };
 
   // =========================================================================
-  // BRIDGE HANDLERS: WRITING SKILLS (Passed to Child Component)
+  // BRIDGE HANDLERS: WRITING SKILLS
   // =========================================================================
 
   const addWritingTask = (unitIdx, type) => {
@@ -456,6 +461,7 @@ export default function AdminPanel() {
                                 {/* 2. Units Loop */}
                                 {chapterForm.units?.map((unit, uIdx) => (
                                     <motion.div key={uIdx} initial={{opacity:0, y:20}} animate={{opacity:1, y:0}} className="bg-white dark:bg-zinc-900/10 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-6 relative shadow-sm dark:shadow-none">
+                                            {/* ... (Existing Unit Code) ... */}
                                             <div className="flex gap-4 mb-6 pb-6 border-b border-zinc-100 dark:border-zinc-800">
                                                 <div className="flex-1"><InputLabel>Unit Title</InputLabel><ThemedInput value={unit.title} onChange={(e) => updateUnitTitle(uIdx, e.target.value)} /></div>
                                                 <button type="button" onClick={() => removeUnit(uIdx)} className="mt-6 p-2 text-zinc-400 hover:text-black dark:hover:text-white rounded-lg transition-colors"><Trash2 size={18} /></button>
@@ -588,6 +594,34 @@ export default function AdminPanel() {
                                     <div className="grid grid-cols-1 gap-5">
                                         <div><InputLabel>Topic Title</InputLabel><ThemedInput value={grammarForm.topic} onChange={(e) => setGrammarForm({...grammarForm, topic: e.target.value})} /></div>
                                         <div><InputLabel>Description</InputLabel><ThemedTextarea value={grammarForm.description} onChange={(e) => setGrammarForm({...grammarForm, description: e.target.value})} placeholder="Brief description of the grammar topic..." /></div>
+
+                                        {/* ADDED: Grammar Cover Image Upload */}
+                                        <div className="col-span-1">
+                                            <InputLabel>Cover Image (Optional)</InputLabel>
+                                            <div className="flex items-center gap-4 mt-2">
+                                                {grammarForm.coverImage && (
+                                                    <div className="relative w-20 h-20 rounded-lg overflow-hidden border border-zinc-200 dark:border-zinc-700 group">
+                                                        <img src={grammarForm.coverImage} alt="Cover" className="w-full h-full object-cover"/>
+                                                        <button type="button" onClick={() => setGrammarForm(prev => ({...prev, coverImage: ""}))} className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity text-white"><Trash2 size={16}/></button>
+                                                    </div>
+                                                )}
+                                                <label className={`flex items-center gap-2 px-4 py-2 bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 rounded-lg cursor-pointer transition-colors text-xs font-bold text-zinc-600 dark:text-zinc-300 ${uploadState.target ? 'opacity-50 cursor-not-allowed' : ''}`}>
+                                                    {/* GEMINI-LIKE LOADER */}
+                                                    {uploadState.target === 'cover' ? (
+                                                        <div className="flex items-center gap-2 text-indigo-600 dark:text-indigo-400">
+                                                            <CircularProgress percentage={uploadState.progress} />
+                                                            <span>{uploadState.progress}%</span>
+                                                        </div>
+                                                    ) : (
+                                                        <>
+                                                            <UploadCloud size={14}/>
+                                                            <span>{grammarForm.coverImage ? "Change Cover" : "Upload Cover"}</span>
+                                                        </>
+                                                    )}
+                                                    <input type="file" accept="image/*" className="hidden" onChange={(e) => handleCoverImageUpload(e.target.files[0])} disabled={!!uploadState.target} />
+                                                </label>
+                                            </div>
+                                        </div>
                                     </div>
                                 </section>
 
