@@ -70,7 +70,7 @@ export default function AdminPanel() {
 
   // --- Initial States ---
   const initialChapterState = {
-    classLevel: 5,
+    classLevel: 3, // UPDATED: Changed default from 5 to 3
     title: "",
     author: "",
     chapterNumber: 1,
@@ -81,7 +81,7 @@ export default function AdminPanel() {
   const initialGrammarState = {
     topic: "",
     description: "",
-    coverImage: "", // <--- Added coverImage here
+    coverImage: "",
     sections: [{ title: "Rule 1", content: "", examples: [{ sentence: "", explanation: "" }] }]
   };
 
@@ -132,7 +132,7 @@ export default function AdminPanel() {
         };
         setChapterForm(safeItem);
     } else {
-        setGrammarForm({ ...item, coverImage: item.coverImage || "" }); // <--- Ensure coverImage is loaded
+        setGrammarForm({ ...item, coverImage: item.coverImage || "" });
     }
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
@@ -186,7 +186,6 @@ export default function AdminPanel() {
   const handleCoverImageUpload = async (file) => {
       try {
           const url = await uploadToCloudinary(file, 'cover');
-          // UPDATED: Logic to handle both forms
           if (activeTab === "chapter") {
               setChapterForm(prev => ({ ...prev, coverImage: url }));
           } else {

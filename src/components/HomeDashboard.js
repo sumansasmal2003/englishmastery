@@ -47,7 +47,9 @@ export default function HomeDashboard({ chapters = [], grammar = [] }) {
 
   const classChapters = chapters.filter((ch) => ch.classLevel === selectedClass);
   const isSearching = searchQuery.length > 0;
-  const classes = [5, 6, 7, 8, 9, 10];
+
+  // UPDATED: Added classes 3, 4, 11, 12
+  const classes = [3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
 
   return (
     <div className="min-h-screen bg-white dark:bg-black text-zinc-900 dark:text-zinc-100 font-sans selection:bg-white selection:text-black relative overflow-x-hidden">
