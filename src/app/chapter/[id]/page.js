@@ -484,7 +484,7 @@ export default function ChapterDetail() {
                                             <span className="text-[10px] font-bold text-zinc-400 dark:text-zinc-500 uppercase tracking-widest">Bengali</span>
                                             <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full shadow-[0_0_8px_rgba(16,185,129,0.5)]"></span>
                                         </div>
-                                        <p className="text-xl md:text-2xl text-zinc-600 dark:text-zinc-400 leading-relaxed font-bengali max-w-prose">{para.bengali}</p>
+                                        <p className="text-xl md:text-xl text-zinc-600 dark:text-zinc-400 leading-relaxed font-bengali max-w-prose">{para.bengali}</p>
                                     </div>
                                 </div>
                             </div>
