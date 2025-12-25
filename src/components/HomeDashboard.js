@@ -48,7 +48,7 @@ export default function HomeDashboard({ chapters = [], grammar = [] }) {
   const classChapters = chapters.filter((ch) => ch.classLevel === selectedClass);
   const isSearching = searchQuery.length > 0;
 
-  // UPDATED: Added classes 3, 4, 11, 12
+  // Classes List
   const classes = [3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
 
   return (
@@ -203,6 +203,12 @@ export default function HomeDashboard({ chapters = [], grammar = [] }) {
                                     onClick={() => setSelectedClass(cls)}
                                     className="group relative flex flex-col justify-between h-40 p-6 w-full bg-white dark:bg-[#0a0a0a] border border-zinc-200 dark:border-zinc-800 hover:border-zinc-400 dark:hover:border-zinc-600 rounded-lg text-left transition-all duration-200 overflow-hidden"
                                 >
+                                    {/* --- NEW: WATERMARK BACKGROUND --- */}
+                                    <div className="absolute -bottom-1 right-2 text-[7rem] font-black text-zinc-100 dark:text-zinc-600 leading-none select-none transition-transform duration-500 group-hover:scale-110 group-hover:-rotate-12 z-0">
+                                        {cls}
+                                    </div>
+
+                                    {/* Content (z-10 ensures it sits above the watermark) */}
                                     <div className="relative z-10 flex justify-between w-full">
                                         <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Grade Level</span>
                                         <div className="px-2 py-0.5 rounded bg-zinc-100 dark:bg-[#111] border border-zinc-200 dark:border-zinc-700 text-[10px] text-zinc-600 dark:text-zinc-400 font-mono">
