@@ -31,7 +31,7 @@ const GraphBorder = ({ side = "left" }) => {
   );
 };
 
-export default function HomeDashboard({ chapters = [], grammar = [] }) {
+export default function HomeDashboard({ chapters = [], grammar = [], classInfos = [] }) {
   const [selectedClass, setSelectedClass] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
 
@@ -50,6 +50,11 @@ export default function HomeDashboard({ chapters = [], grammar = [] }) {
 
   // Classes List
   const classes = [3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
+
+  const getClassImage = (cls) => {
+    const info = classInfos.find(i => i.classLevel === cls);
+    return info?.coverImage || null;
+  };
 
   return (
     <div className="min-h-screen bg-white dark:bg-black text-zinc-900 dark:text-zinc-100 font-sans selection:bg-white selection:text-black relative overflow-x-hidden">
@@ -187,41 +192,51 @@ export default function HomeDashboard({ chapters = [], grammar = [] }) {
                     <div className="flex items-end justify-between mb-6 px-1 border-b border-zinc-100 dark:border-zinc-900 pb-4">
                         <div className="flex items-center gap-3">
                             <GraduationCap className="text-zinc-800 dark:text-zinc-200" size={20} />
-                            <div>
-                                <h2 className="text-xl font-bold text-zinc-900 dark:text-white">Academic Curriculum</h2>
-                            </div>
+                            <h2 className="text-xl font-bold text-zinc-900 dark:text-white">Academic Curriculum</h2>
                         </div>
                     </div>
 
                     <motion.div variants={containerVariants} initial="hidden" animate="show" className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                         {classes.map((cls) => {
                             const count = chapters.filter(c => c.classLevel === cls).length;
+                            const coverImg = getClassImage(cls);
+
                             return (
                                 <motion.button
                                     key={cls}
                                     variants={itemVariants}
                                     onClick={() => setSelectedClass(cls)}
-                                    className="group relative flex flex-col justify-between h-40 p-6 w-full bg-white dark:bg-[#0a0a0a] border border-zinc-200 dark:border-zinc-800 hover:border-zinc-400 dark:hover:border-zinc-600 rounded-lg text-left transition-all duration-200 overflow-hidden"
+                                    className="group relative flex flex-col justify-between h-48 p-6 w-full bg-white dark:bg-[#0a0a0a] border border-zinc-200 dark:border-zinc-800 hover:border-zinc-400 dark:hover:border-zinc-600 rounded-lg text-left transition-all duration-200 overflow-hidden shadow-sm hover:shadow-lg"
                                 >
-                                    {/* --- NEW: WATERMARK BACKGROUND --- */}
-                                    <div className="absolute -bottom-1 right-2 text-[7rem] font-black text-zinc-100 dark:text-zinc-600 leading-none select-none transition-transform duration-500 group-hover:scale-110 group-hover:-rotate-12 z-0">
-                                        {cls}
-                                    </div>
+                                    {/* --- COVER IMAGE BACKGROUND --- */}
+                                    {coverImg ? (
+                                        <>
+                                            <div className="absolute inset-0 z-0">
+                                                <img src={coverImg} alt={`Class ${cls}`} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
+                                            </div>
+                                            {/* Gradient Overlay for Text Readability */}
+                                            <div className="absolute inset-0 z-10 bg-gradient-to-t from-black/90 via-black/40 to-black/20" />
+                                        </>
+                                    ) : (
+                                        /* Fallback Watermark */
+                                        <div className="absolute -bottom-6 -right-6 text-[10rem] font-black text-zinc-50 dark:text-[#111] leading-none select-none transition-transform duration-500 group-hover:scale-110 group-hover:-rotate-12 z-0">
+                                            {cls}
+                                        </div>
+                                    )}
 
-                                    {/* Content (z-10 ensures it sits above the watermark) */}
-                                    <div className="relative z-10 flex justify-between w-full">
-                                        <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Grade Level</span>
-                                        <div className="px-2 py-0.5 rounded bg-zinc-100 dark:bg-[#111] border border-zinc-200 dark:border-zinc-700 text-[10px] text-zinc-600 dark:text-zinc-400 font-mono">
+                                    {/* Content (z-20 ensures it sits above image and overlay) */}
+                                    <div className="relative z-20 flex justify-between w-full">
+                                        <div className={`px-2 py-0.5 rounded text-[10px] font-mono border ${coverImg ? 'bg-black/50 border-white/20 text-white' : 'bg-zinc-100 dark:bg-[#111] border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400'}`}>
                                             {count} Units
                                         </div>
                                     </div>
 
-                                    <div className="relative z-10 mt-auto">
+                                    <div className="relative z-20 mt-auto">
                                         <div className="flex items-baseline gap-1">
-                                            <span className="text-4xl font-bold text-zinc-900 dark:text-white tracking-tighter group-hover:text-black dark:group-hover:text-white transition-colors">{cls}</span>
-                                            <span className="text-sm text-zinc-400 font-medium">th</span>
+                                            <span className={`text-4xl font-bold tracking-tighter transition-colors ${coverImg ? 'text-white' : 'text-zinc-900 dark:text-white group-hover:text-black dark:group-hover:text-white'}`}>{cls}</span>
+                                            <span className={`text-sm font-medium ${coverImg ? 'text-zinc-300' : 'text-zinc-400'}`}>th</span>
                                         </div>
-                                        <div className="flex items-center gap-1.5 mt-2 text-xs font-medium text-zinc-500 group-hover:text-zinc-900 dark:group-hover:text-zinc-300 transition-colors">
+                                        <div className={`flex items-center gap-1.5 mt-2 text-xs font-medium transition-colors ${coverImg ? 'text-zinc-300 group-hover:text-white' : 'text-zinc-500 group-hover:text-zinc-900 dark:group-hover:text-zinc-300'}`}>
                                             View Syllabus <ChevronRight size={10} strokeWidth={3} />
                                         </div>
                                     </div>

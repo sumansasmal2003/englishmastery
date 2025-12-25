@@ -7,7 +7,8 @@ import {
   X,
   Edit3,
   Image as ImageIcon,
-  UploadCloud
+  UploadCloud,
+  LayoutGrid
 } from "lucide-react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
@@ -61,6 +62,7 @@ export default function AdminPanel() {
   const [fetching, setFetching] = useState(true);
   const [chaptersList, setChaptersList] = useState([]);
   const [grammarList, setGrammarList] = useState([]);
+  const [classInfos, setClassInfos] = useState([]); // State for Class Covers
   const [notification, setNotification] = useState(null);
   const [editingId, setEditingId] = useState(null);
   const [showTestModal, setShowTestModal] = useState(false);
@@ -70,7 +72,7 @@ export default function AdminPanel() {
 
   // --- Initial States ---
   const initialChapterState = {
-    classLevel: 3, // UPDATED: Changed default from 5 to 3
+    classLevel: 3,
     title: "",
     author: "",
     chapterNumber: 1,
@@ -93,49 +95,20 @@ export default function AdminPanel() {
   async function fetchData() {
     setFetching(true);
     try {
-        const endpoint = activeTab === "chapter" ? "/api/chapters" : "/api/grammar";
+        let endpoint = "";
+        if (activeTab === "chapter") endpoint = "/api/chapters";
+        else if (activeTab === "grammar") endpoint = "/api/grammar";
+        else endpoint = "/api/classes"; // Endpoint for classes
+
         const res = await fetch(endpoint);
         const data = await res.json();
         if (data.success) {
-            activeTab === "chapter" ? setChaptersList(data.data || []) : setGrammarList(data.data || []);
+            if (activeTab === "chapter") setChaptersList(data.data || []);
+            else if (activeTab === "grammar") setGrammarList(data.data || []);
+            else setClassInfos(data.data || []);
         }
     } catch (error) { console.error(error); } finally { setFetching(false); }
   }
-
-  // --- Helpers ---
-  const showNotification = (type, message) => {
-    setNotification({ type, message });
-    setTimeout(() => setNotification(null), 4000);
-  };
-
-  const resetForm = () => {
-    setEditingId(null);
-    activeTab === "chapter" ? setChapterForm(initialChapterState) : setGrammarForm(initialGrammarState);
-  };
-
-  const loadForEdit = (item) => {
-    setEditingId(item._id);
-    if (activeTab === "chapter") {
-        const safeItem = {
-            ...item,
-            coverImage: item.coverImage || "",
-            units: item.units?.map(u => ({
-                ...u,
-                paragraphs: u.paragraphs?.map(p => ({ ...p, image: p.image || "" })) || [],
-                activities: u.activities?.map(a => ({
-                    ...a,
-                    questions: a.questions || [],
-                    columnHeaders: a.columnHeaders || []
-                })) || [],
-                writings: u.writings || []
-            })) || []
-        };
-        setChapterForm(safeItem);
-    } else {
-        setGrammarForm({ ...item, coverImage: item.coverImage || "" });
-    }
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
 
   // --- CLOUDINARY UPLOAD WITH PROGRESS ---
   const uploadToCloudinary = (file, targetId) => {
@@ -182,7 +155,69 @@ export default function AdminPanel() {
     });
   };
 
-  // --- HANDLERS ---
+  // --- HANDLER: Class Image Upload ---
+  const handleClassImageUpload = async (classLevel, file) => {
+    try {
+        setUploadState({ target: `class-${classLevel}`, progress: 1 });
+        const url = await uploadToCloudinary(file, `class-${classLevel}`);
+
+        // Save to DB immediately
+        const res = await fetch('/api/classes', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ classLevel, coverImage: url })
+        });
+        const data = await res.json();
+
+        if (data.success) {
+            showNotification('success', `Class ${classLevel} image updated`);
+            fetchData(); // Refresh list
+        } else {
+            showNotification('error', data.error);
+        }
+    } catch (e) {
+        showNotification('error', 'Upload failed');
+    } finally {
+        setUploadState({ target: null, progress: 0 });
+    }
+  };
+
+  // --- Helpers ---
+  const showNotification = (type, message) => {
+    setNotification({ type, message });
+    setTimeout(() => setNotification(null), 4000);
+  };
+
+  const resetForm = () => {
+    setEditingId(null);
+    activeTab === "chapter" ? setChapterForm(initialChapterState) : setGrammarForm(initialGrammarState);
+  };
+
+  const loadForEdit = (item) => {
+    setEditingId(item._id);
+    if (activeTab === "chapter") {
+        const safeItem = {
+            ...item,
+            coverImage: item.coverImage || "",
+            units: item.units?.map(u => ({
+                ...u,
+                paragraphs: u.paragraphs?.map(p => ({ ...p, image: p.image || "" })) || [],
+                activities: u.activities?.map(a => ({
+                    ...a,
+                    questions: a.questions || [],
+                    columnHeaders: a.columnHeaders || []
+                })) || [],
+                writings: u.writings || []
+            })) || []
+        };
+        setChapterForm(safeItem);
+    } else {
+        setGrammarForm({ ...item, coverImage: item.coverImage || "" });
+    }
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  // --- HANDLERS: Forms ---
   const handleCoverImageUpload = async (file) => {
       try {
           const url = await uploadToCloudinary(file, 'cover');
@@ -353,6 +388,7 @@ export default function AdminPanel() {
             <div className="flex items-center bg-zinc-100 dark:bg-zinc-900 p-1 rounded-lg border border-zinc-200 dark:border-zinc-800">
                 <button onClick={() => { setActiveTab("chapter"); resetForm(); }} className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-xs font-bold transition-all ${activeTab === "chapter" ? 'bg-white dark:bg-zinc-800 shadow-sm text-zinc-900 dark:text-white' : 'text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-300'}`}><BookOpen size={14} /> Literature</button>
                 <button onClick={() => { setActiveTab("grammar"); resetForm(); }} className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-xs font-bold transition-all ${activeTab === "grammar" ? 'bg-white dark:bg-zinc-800 shadow-sm text-zinc-900 dark:text-white' : 'text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-300'}`}><PenTool size={14} /> Grammar</button>
+                <button onClick={() => { setActiveTab("classes"); }} className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-xs font-bold transition-all ${activeTab === "classes" ? 'bg-white dark:bg-zinc-800 shadow-sm text-zinc-900 dark:text-white' : 'text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-300'}`}><LayoutGrid size={14} /> Classes</button>
             </div>
           </div>
           <div className='flex items-center justify-center gap-2'>
@@ -362,7 +398,11 @@ export default function AdminPanel() {
             >
                 <FileText size={14} /><span>Test Mode</span>
             </button>
-            <button onClick={resetForm} className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-bold transition-all ${!editingId ? 'bg-zinc-900 dark:bg-zinc-100 text-white dark:text-black' : 'bg-zinc-100 dark:bg-zinc-900 text-zinc-500 hover:text-black dark:hover:text-white'}`}><FilePlus size={14} /><span>New {activeTab === "chapter" ? "Chapter" : "Topic"}</span></button>
+
+            {/* Hide "New" button when in Classes tab */}
+            {activeTab !== 'classes' && (
+                <button onClick={resetForm} className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-bold transition-all ${!editingId ? 'bg-zinc-900 dark:bg-zinc-100 text-white dark:text-black' : 'bg-zinc-100 dark:bg-zinc-900 text-zinc-500 hover:text-black dark:hover:text-white'}`}><FilePlus size={14} /><span>New {activeTab === "chapter" ? "Chapter" : "Topic"}</span></button>
+            )}
 
             <button
                 onClick={() => signOut({ callbackUrl: '/login' })}
@@ -376,301 +416,349 @@ export default function AdminPanel() {
       </header>
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 pt-24 pb-32">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
 
-            {/* Sidebar */}
-            <div className="lg:col-span-4 lg:sticky lg:top-24">
-                <div className="bg-white dark:bg-zinc-900/30 border border-zinc-200 dark:border-zinc-800 rounded-xl overflow-hidden shadow-sm max-h-[calc(100vh-12rem)] overflow-y-auto custom-scrollbar">
-                    {fetching ? (
-                        <SidebarSkeleton />
-                    ) : (
-                        <div className="divide-y divide-zinc-100 dark:divide-zinc-800/50">
-                            {((activeTab === "chapter" ? chaptersList : grammarList) || []).length === 0 ? (
-                                <div className="p-8 text-center text-zinc-500 text-xs py-12">No items found</div>
-                            ) : (
-                                (activeTab === "chapter" ? chaptersList : grammarList).map((item) => (
-                                    <button key={item._id} onClick={() => loadForEdit(item)} className={`w-full text-left p-4 hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-all flex items-center justify-between group ${editingId === item._id ? 'bg-zinc-50 dark:bg-zinc-800/80 border-l-4 border-zinc-900 dark:border-zinc-100' : 'border-l-4 border-transparent'}`}>
-                                            <div>
-                                                <div className="flex items-center gap-2 mb-1">
-                                                    <span className={`text-[10px] font-mono px-1.5 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400`}>
-                                                        {activeTab === "chapter" ? `Cl ${item.classLevel}` : 'Ref'}
-                                                    </span>
+        {/* --- MODE SWITCH: Grid for Classes vs. Sidebar+Form for Content --- */}
+        {activeTab === 'classes' ? (
+             <div className="space-y-6">
+                 <div className="flex items-center gap-2 pb-2 border-b border-zinc-100 dark:border-zinc-800">
+                     <LayoutGrid size={16} className="text-zinc-400"/>
+                     <h2 className="text-sm font-bold text-zinc-900 dark:text-white uppercase tracking-wider">Manage Class Covers</h2>
+                 </div>
+
+                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6">
+                     {[3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map(cls => {
+                         const info = classInfos.find(i => i.classLevel === cls);
+                         const isUploading = uploadState.target === `class-${cls}`;
+
+                         return (
+                             <div key={cls} className="bg-white dark:bg-zinc-900/30 border border-zinc-200 dark:border-zinc-800 rounded-xl p-4 flex flex-col items-center gap-4 shadow-sm hover:shadow-md transition-shadow">
+                                 <div className="text-lg font-bold text-zinc-900 dark:text-white">Class {cls}</div>
+
+                                 <div className="relative w-full aspect-video bg-zinc-100 dark:bg-zinc-800 rounded-lg overflow-hidden border border-zinc-200 dark:border-zinc-700">
+                                     {info?.coverImage ? (
+                                         <img src={info.coverImage} alt={`Class ${cls}`} className="w-full h-full object-cover" />
+                                     ) : (
+                                         <div className="w-full h-full flex items-center justify-center text-zinc-400">
+                                             <ImageIcon size={24} opacity={0.5} />
+                                         </div>
+                                     )}
+                                     {isUploading && (
+                                         <div className="absolute inset-0 bg-black/60 flex items-center justify-center text-white text-xs font-bold">
+                                             {uploadState.progress}%
+                                         </div>
+                                     )}
+                                 </div>
+
+                                 <label className={`w-full py-2 flex items-center justify-center gap-2 bg-zinc-900 dark:bg-white text-white dark:text-black rounded-lg text-xs font-bold cursor-pointer hover:opacity-90 transition-opacity ${isUploading ? 'opacity-50 pointer-events-none' : ''}`}>
+                                     <UploadCloud size={14} />
+                                     <span>{info?.coverImage ? 'Change' : 'Upload'}</span>
+                                     <input type="file" accept="image/*" className="hidden" onChange={(e) => handleClassImageUpload(cls, e.target.files[0])} disabled={isUploading} />
+                                 </label>
+                             </div>
+                         );
+                     })}
+                 </div>
+             </div>
+        ) : (
+            /* --- DEFAULT VIEW: Sidebar + Form --- */
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+
+                {/* Sidebar */}
+                <div className="lg:col-span-4 lg:sticky lg:top-24">
+                    <div className="bg-white dark:bg-zinc-900/30 border border-zinc-200 dark:border-zinc-800 rounded-xl overflow-hidden shadow-sm max-h-[calc(100vh-12rem)] overflow-y-auto custom-scrollbar">
+                        {fetching ? (
+                            <SidebarSkeleton />
+                        ) : (
+                            <div className="divide-y divide-zinc-100 dark:divide-zinc-800/50">
+                                {((activeTab === "chapter" ? chaptersList : grammarList) || []).length === 0 ? (
+                                    <div className="p-8 text-center text-zinc-500 text-xs py-12">No items found</div>
+                                ) : (
+                                    (activeTab === "chapter" ? chaptersList : grammarList).map((item) => (
+                                        <button key={item._id} onClick={() => loadForEdit(item)} className={`w-full text-left p-4 hover:bg-zinc-50 dark:hover:bg-zinc-800/50 transition-all flex items-center justify-between group ${editingId === item._id ? 'bg-zinc-50 dark:bg-zinc-800/80 border-l-4 border-zinc-900 dark:border-zinc-100' : 'border-l-4 border-transparent'}`}>
+                                                <div>
+                                                    <div className="flex items-center gap-2 mb-1">
+                                                        <span className={`text-[10px] font-mono px-1.5 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800 text-zinc-500 dark:text-zinc-400`}>
+                                                            {activeTab === "chapter" ? `Cl ${item.classLevel}` : 'Ref'}
+                                                        </span>
+                                                    </div>
+                                                    <h3 className={`text-sm font-medium line-clamp-1 transition-colors ${editingId === item._id ? 'text-black dark:text-white' : 'text-zinc-600 dark:text-zinc-400 group-hover:text-black dark:group-hover:text-white'}`}>{activeTab === "chapter" ? item.title : item.topic}</h3>
                                                 </div>
-                                                <h3 className={`text-sm font-medium line-clamp-1 transition-colors ${editingId === item._id ? 'text-black dark:text-white' : 'text-zinc-600 dark:text-zinc-400 group-hover:text-black dark:group-hover:text-white'}`}>{activeTab === "chapter" ? item.title : item.topic}</h3>
+                                                <Edit3 size={14} className={`transition-opacity ${editingId === item._id ? 'text-black dark:text-white opacity-100' : 'text-zinc-400 opacity-0 group-hover:opacity-100'}`} />
+                                        </button>
+                                    ))
+                                )}
+                            </div>
+                        )}
+                    </div>
+                </div>
+
+                {/* Main Form */}
+                <div className="lg:col-span-8">
+                    <form onSubmit={handleSubmit} className="space-y-10">
+
+                        {activeTab === "chapter" && (
+                            <AnimatePresence mode="wait">
+                                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-10">
+
+                                    {/* 1. Metadata */}
+                                    <section className="bg-white dark:bg-zinc-900/10 p-6 rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-sm dark:shadow-none space-y-6">
+                                        <div className="flex items-center gap-2 pb-2 border-b border-zinc-100 dark:border-zinc-800">
+                                            <FileText size={16} className="text-zinc-400"/>
+                                            <h2 className="text-sm font-bold text-zinc-900 dark:text-white uppercase tracking-wider">Chapter Metadata</h2>
+                                        </div>
+                                        <div className="grid grid-cols-2 md:grid-cols-4 gap-5">
+                                            <div className="col-span-1"><InputLabel>Class Level</InputLabel><ThemedInput type="number" value={chapterForm.classLevel} onChange={(e) => setChapterForm({...chapterForm, classLevel: e.target.value})} /></div>
+                                            <div className="col-span-1"><InputLabel>Chapter No.</InputLabel><ThemedInput type="number" value={chapterForm.chapterNumber} onChange={(e) => setChapterForm({...chapterForm, chapterNumber: e.target.value})} /></div>
+                                            <div className="col-span-2"><InputLabel>Author Name</InputLabel><ThemedInput value={chapterForm.author} onChange={(e) => setChapterForm({...chapterForm, author: e.target.value})} /></div>
+                                            <div className="col-span-4"><InputLabel>Chapter Title</InputLabel><ThemedInput value={chapterForm.title} onChange={(e) => setChapterForm({...chapterForm, title: e.target.value})} className="text-lg font-medium" /></div>
+
+                                            {/* Cover Image Upload */}
+                                            <div className="col-span-4">
+                                                <InputLabel>Cover Image (Optional)</InputLabel>
+                                                <div className="flex items-center gap-4 mt-2">
+                                                    {chapterForm.coverImage && (
+                                                        <div className="relative w-20 h-20 rounded-lg overflow-hidden border border-zinc-200 dark:border-zinc-700 group">
+                                                            <img src={chapterForm.coverImage} alt="Cover" className="w-full h-full object-cover"/>
+                                                            <button type="button" onClick={() => setChapterForm(prev => ({...prev, coverImage: ""}))} className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity text-white"><Trash2 size={16}/></button>
+                                                        </div>
+                                                    )}
+                                                    <label className={`flex items-center gap-2 px-4 py-2 bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 rounded-lg cursor-pointer transition-colors text-xs font-bold text-zinc-600 dark:text-zinc-300 ${uploadState.target ? 'opacity-50 cursor-not-allowed' : ''}`}>
+                                                        {/* GEMINI-LIKE LOADER */}
+                                                        {uploadState.target === 'cover' ? (
+                                                            <div className="flex items-center gap-2 text-indigo-600 dark:text-indigo-400">
+                                                                <CircularProgress percentage={uploadState.progress} />
+                                                                <span>{uploadState.progress}%</span>
+                                                            </div>
+                                                        ) : (
+                                                            <>
+                                                                <UploadCloud size={14}/>
+                                                                <span>{chapterForm.coverImage ? "Change Cover" : "Upload Cover"}</span>
+                                                            </>
+                                                        )}
+                                                        <input type="file" accept="image/*" className="hidden" onChange={(e) => handleCoverImageUpload(e.target.files[0])} disabled={!!uploadState.target} />
+                                                    </label>
+                                                </div>
                                             </div>
-                                            <Edit3 size={14} className={`transition-opacity ${editingId === item._id ? 'text-black dark:text-white opacity-100' : 'text-zinc-400 opacity-0 group-hover:opacity-100'}`} />
+                                        </div>
+                                    </section>
+
+                                    {/* 2. Units Loop */}
+                                    {chapterForm.units?.map((unit, uIdx) => (
+                                        <motion.div key={uIdx} initial={{opacity:0, y:20}} animate={{opacity:1, y:0}} className="bg-white dark:bg-zinc-900/10 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-6 relative shadow-sm dark:shadow-none">
+                                                {/* ... (Existing Unit Code) ... */}
+                                                <div className="flex gap-4 mb-6 pb-6 border-b border-zinc-100 dark:border-zinc-800">
+                                                    <div className="flex-1"><InputLabel>Unit Title</InputLabel><ThemedInput value={unit.title} onChange={(e) => updateUnitTitle(uIdx, e.target.value)} /></div>
+                                                    <button type="button" onClick={() => removeUnit(uIdx)} className="mt-6 p-2 text-zinc-400 hover:text-black dark:hover:text-white rounded-lg transition-colors"><Trash2 size={18} /></button>
+                                                </div>
+
+                                                {/* Paragraphs */}
+                                                <div className="space-y-5 mb-8">
+                                                    <h3 className="text-xs font-bold text-zinc-400 uppercase tracking-widest flex items-center gap-2"><AlignLeft size={14}/> Text Content</h3>
+                                                    {unit.paragraphs?.map((p, pIdx) => (
+                                                        <div key={pIdx} className="space-y-3 group bg-zinc-50/50 dark:bg-zinc-900/20 p-4 rounded-xl border border-zinc-100 dark:border-zinc-800/50">
+                                                            <div className="grid md:grid-cols-2 gap-4">
+                                                                <ThemedTextarea value={p.english} onChange={(e) => updateParagraph(uIdx, pIdx, 'english', e.target.value)} placeholder="English text..." />
+                                                                <div className="relative">
+                                                                    <ThemedTextarea value={p.bengali} onChange={(e) => updateParagraph(uIdx, pIdx, 'bengali', e.target.value)} placeholder="Bengali translation..." />
+                                                                    <button type="button" onClick={() => removeParagraph(uIdx, pIdx)} className="absolute top-2 right-2 p-1 text-zinc-300 hover:text-black dark:hover:text-white hover:bg-zinc-200 dark:hover:bg-zinc-800 rounded transition-all"><X size={14}/></button>
+                                                                </div>
+                                                            </div>
+                                                            {/* Paragraph Image Upload */}
+                                                            <div className="flex items-center gap-3 pt-2 border-t border-dashed border-zinc-200 dark:border-zinc-800">
+                                                                {p.image ? (
+                                                                    <div className="flex items-center gap-3 p-1.5 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg">
+                                                                        <img src={p.image} alt="Paragraph visual" className="w-12 h-12 object-cover rounded-md"/>
+                                                                        <div className="flex flex-col">
+                                                                            <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400">Image Attached</span>
+                                                                            <button type="button" onClick={() => updateParagraph(uIdx, pIdx, 'image', "")} className="text-[10px] text-red-500 hover:underline text-left">Remove</button>
+                                                                        </div>
+                                                                    </div>
+                                                                ) : (
+                                                                    <label className={`flex items-center gap-2 px-3 py-1.5 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-md cursor-pointer hover:border-zinc-400 transition-all text-[10px] font-bold text-zinc-500 hover:text-black dark:hover:text-white ${uploadState.target ? 'opacity-50 cursor-not-allowed' : ''}`}>
+                                                                        {/* GEMINI-LIKE LOADER */}
+                                                                        {uploadState.target === `u-${uIdx}-p-${pIdx}` ? (
+                                                                            <div className="flex items-center gap-2 text-indigo-600 dark:text-indigo-400">
+                                                                                <CircularProgress percentage={uploadState.progress} size={14} strokeWidth={2} />
+                                                                                <span>{uploadState.progress}%</span>
+                                                                            </div>
+                                                                        ) : (
+                                                                            <>
+                                                                                <ImageIcon size={12}/>
+                                                                                <span>Add Illustration</span>
+                                                                            </>
+                                                                        )}
+                                                                        <input type="file" accept="image/*" className="hidden" onChange={(e) => handleParagraphImageUpload(uIdx, pIdx, e.target.files[0])} disabled={!!uploadState.target} />
+                                                                    </label>
+                                                                )}
+                                                            </div>
+                                                        </div>
+                                                    ))}
+                                                    <button type="button" onClick={() => addParagraph(uIdx)} className="w-full py-2.5 border border-dashed border-zinc-300 dark:border-zinc-700 rounded-lg text-xs font-bold text-zinc-500 hover:text-black dark:hover:text-white hover:border-zinc-400 transition-colors">+ Add Paragraph Block</button>
+                                                </div>
+
+                                                {/* Activities */}
+                                                <div className="pt-6 border-t border-zinc-100 dark:border-zinc-800/50 mb-8">
+                                                    <div className="flex justify-between items-center mb-6">
+                                                        <h3 className="text-xs font-bold text-zinc-400 uppercase tracking-widest flex items-center gap-2"><Layers size={14}/> Interactive Activities</h3>
+                                                        <div className="group relative z-20">
+                                                            <button type="button" className="text-xs font-bold text-zinc-800 dark:text-zinc-200 bg-zinc-100 dark:bg-zinc-800 px-3 py-1.5 rounded-md flex items-center gap-1 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors"><Plus size={14}/> Add Activity</button>
+                                                            <div className="absolute right-0 top-full mt-2 w-48 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-lg shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-10 flex flex-col p-1 transform origin-top-right scale-95 group-hover:scale-100 max-h-60 overflow-y-auto custom-scrollbar">
+                                                                {['MCQ', 'TRUE_FALSE', 'MATCHING', 'FILL_BLANKS', 'WORD_BOX', 'REARRANGE', 'UNDERLINE', 'UNDERLINE_CIRCLE', 'CATEGORIZE', 'CAUSE_EFFECT', 'QA', 'CHART_FILL'].map(type => (
+                                                                    <button key={type} type="button" onClick={() => addActivityGroup(uIdx, type)} className="text-left px-3 py-2 text-xs font-medium hover:bg-zinc-50 dark:hover:bg-zinc-800 rounded text-zinc-600 dark:text-zinc-300 flex items-center gap-2 hover:text-black dark:hover:text-white">
+                                                                        {type.replace('_', ' ')}
+                                                                    </button>
+                                                                ))}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+
+                                                    <div className="space-y-6">
+                                                        {unit.activities?.map((act, actIdx) => (
+                                                            <ActivityBuilder
+                                                                key={actIdx}
+                                                                unitIdx={uIdx}
+                                                                actIdx={actIdx}
+                                                                activity={act}
+                                                                onChange={(newAct) => updateActivity(uIdx, actIdx, newAct)}
+                                                                onRemove={() => removeActivity(uIdx, actIdx)}
+                                                            />
+                                                        ))}
+                                                    </div>
+                                                </div>
+
+                                                {/* Writing Skills */}
+                                                <div className="pt-6 border-t border-zinc-100 dark:border-zinc-800/50">
+                                                    <div className="flex justify-between items-center mb-6">
+                                                        <h3 className="text-xs font-bold text-zinc-400 uppercase tracking-widest flex items-center gap-2"><PenTool size={14}/> Writing Studio</h3>
+                                                        <div className="group relative z-20">
+                                                            <button type="button" className="text-xs font-bold text-zinc-800 dark:text-zinc-200 bg-zinc-100 dark:bg-zinc-800 px-3 py-1.5 rounded-md flex items-center gap-1 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors"><Plus size={14}/> Add Writing Task</button>
+                                                            <div className="absolute right-0 top-full mt-2 w-48 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-lg shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-10 flex flex-col p-1 transform origin-top-right scale-95 group-hover:scale-100 max-h-60 overflow-y-auto custom-scrollbar">
+                                                                {['PARAGRAPH', 'STORY', 'NOTICE', 'FAMILY_CHART', 'FORMAL_LETTER', 'INFORMAL_LETTER', 'PROCESS', 'DIARY', 'DIALOGUE', 'SUMMARY'].map(type => (
+                                                                    <button key={type} type="button" onClick={() => addWritingTask(uIdx, type)} className="text-left px-3 py-2 text-xs font-medium hover:bg-zinc-50 dark:hover:bg-zinc-800 rounded text-zinc-600 dark:text-zinc-300 hover:text-black dark:hover:text-white">
+                                                                        {type.replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, l => l.toUpperCase())}
+                                                                    </button>
+                                                                ))}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+
+                                                    <div className="space-y-6">
+                                                        {unit.writings?.map((write, wIdx) => (
+                                                            <WritingBuilder
+                                                                key={wIdx}
+                                                                unitIdx={uIdx}
+                                                                wIdx={wIdx}
+                                                                writing={write}
+                                                                onChange={(newWrite) => updateWriting(uIdx, wIdx, newWrite)}
+                                                                onRemove={() => removeWriting(uIdx, wIdx)}
+                                                            />
+                                                        ))}
+                                                    </div>
+                                                </div>
+
+                                        </motion.div>
+                                    ))}
+
+                                    <button type="button" onClick={addUnit} className="w-full py-6 border border-dashed border-zinc-300 dark:border-zinc-800 rounded-xl text-zinc-500 hover:bg-zinc-50 dark:hover:bg-zinc-900/50 hover:text-black dark:hover:text-white transition-all flex flex-col items-center gap-2">
+                                        <Plus size={24} /> <span className="text-sm font-bold">Create New Unit</span>
                                     </button>
-                                ))
-                            )}
-                        </div>
-                    )}
+                                </motion.div>
+                            </AnimatePresence>
+                        )}
+
+                        {/* Grammar Form */}
+                        {activeTab === "grammar" && (
+                            <AnimatePresence mode="wait">
+                                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-10">
+                                    <section className="bg-white dark:bg-zinc-900/10 p-6 rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-sm dark:shadow-none space-y-6">
+                                        <div className="flex items-center gap-2 pb-2 border-b border-zinc-100 dark:border-zinc-800">
+                                            <PenTool size={16} className="text-zinc-400"/>
+                                            <h2 className="text-sm font-bold text-zinc-900 dark:text-white uppercase tracking-wider">Grammar Topic</h2>
+                                        </div>
+                                        <div className="grid grid-cols-1 gap-5">
+                                            <div><InputLabel>Topic Title</InputLabel><ThemedInput value={grammarForm.topic} onChange={(e) => setGrammarForm({...grammarForm, topic: e.target.value})} /></div>
+                                            <div><InputLabel>Description</InputLabel><ThemedTextarea value={grammarForm.description} onChange={(e) => setGrammarForm({...grammarForm, description: e.target.value})} placeholder="Brief description of the grammar topic..." /></div>
+
+                                            {/* ADDED: Grammar Cover Image Upload */}
+                                            <div className="col-span-1">
+                                                <InputLabel>Cover Image (Optional)</InputLabel>
+                                                <div className="flex items-center gap-4 mt-2">
+                                                    {grammarForm.coverImage && (
+                                                        <div className="relative w-20 h-20 rounded-lg overflow-hidden border border-zinc-200 dark:border-zinc-700 group">
+                                                            <img src={grammarForm.coverImage} alt="Cover" className="w-full h-full object-cover"/>
+                                                            <button type="button" onClick={() => setGrammarForm(prev => ({...prev, coverImage: ""}))} className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity text-white"><Trash2 size={16}/></button>
+                                                        </div>
+                                                    )}
+                                                    <label className={`flex items-center gap-2 px-4 py-2 bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 rounded-lg cursor-pointer transition-colors text-xs font-bold text-zinc-600 dark:text-zinc-300 ${uploadState.target ? 'opacity-50 cursor-not-allowed' : ''}`}>
+                                                        {/* GEMINI-LIKE LOADER */}
+                                                        {uploadState.target === 'cover' ? (
+                                                            <div className="flex items-center gap-2 text-indigo-600 dark:text-indigo-400">
+                                                                <CircularProgress percentage={uploadState.progress} />
+                                                                <span>{uploadState.progress}%</span>
+                                                            </div>
+                                                        ) : (
+                                                            <>
+                                                                <UploadCloud size={14}/>
+                                                                <span>{grammarForm.coverImage ? "Change Cover" : "Upload Cover"}</span>
+                                                            </>
+                                                        )}
+                                                        <input type="file" accept="image/*" className="hidden" onChange={(e) => handleCoverImageUpload(e.target.files[0])} disabled={!!uploadState.target} />
+                                                    </label>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </section>
+
+                                    {grammarForm.sections.map((sec, idx) => (
+                                        <motion.div key={idx} initial={{opacity:0, y:20}} animate={{opacity:1, y:0}} className="bg-white dark:bg-zinc-900/10 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-6 relative">
+                                                <div className="flex gap-4 mb-4 pb-4 border-b border-zinc-100 dark:border-zinc-800">
+                                                    <div className="flex-1"><InputLabel>Rule Title</InputLabel><ThemedInput value={sec.title} onChange={(e) => updateSection(idx, 'title', e.target.value)} /></div>
+                                                    <button type="button" onClick={() => removeGrammarSection(idx)} className="mt-6 p-2 text-zinc-400 hover:text-black dark:hover:text-white"><Trash2 size={18} /></button>
+                                                </div>
+                                                <div className="mb-6"><InputLabel>Explanation</InputLabel><ThemedTextarea value={sec.content} onChange={(e) => updateSection(idx, 'content', e.target.value)} /></div>
+
+                                                <div className="bg-zinc-50 dark:bg-zinc-900/50 p-5 rounded-xl border border-zinc-100 dark:border-zinc-800/50">
+                                                    <div className="flex justify-between items-center mb-3">
+                                                        <span className="text-xs font-bold text-zinc-500 uppercase flex items-center gap-1"><Lightbulb size={12}/> Examples</span>
+                                                        <button type="button" onClick={() => addExample(idx)} className="text-[10px] bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 px-2 py-1 rounded hover:bg-zinc-100 dark:hover:bg-zinc-700 hover:text-black dark:hover:text-white shadow-sm">+ Add</button>
+                                                    </div>
+                                                    <div className="space-y-3">
+                                                        {sec.examples.map((ex, exIdx) => (
+                                                            <div key={exIdx} className="flex gap-2 items-start">
+                                                                <div className="flex-1 grid gap-2">
+                                                                    <input className="w-full bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded px-2 py-1.5 text-sm outline-none focus:border-zinc-500 focus:ring-1 focus:ring-zinc-500" placeholder="Sentence..." value={ex.sentence} onChange={(e) => updateExample(idx, exIdx, 'sentence', e.target.value)} />
+                                                                    <input className="w-full bg-transparent border-b border-dashed border-zinc-300 dark:border-zinc-700 px-2 py-1 text-xs text-zinc-500 outline-none" placeholder="Why is this correct? (Optional)" value={ex.explanation} onChange={(e) => updateExample(idx, exIdx, 'explanation', e.target.value)} />
+                                                                </div>
+                                                                <button type="button" onClick={() => removeExample(idx, exIdx)} className="p-1 text-zinc-400 hover:text-black dark:hover:text-white"><Trash2 size={14} /></button>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                        </motion.div>
+                                    ))}
+                                    <button type="button" onClick={addGrammarSection} className="w-full py-4 border border-dashed border-zinc-300 rounded-xl text-zinc-500 text-sm hover:bg-zinc-50 hover:text-black transition-colors">+ Add New Rule</button>
+                                </motion.div>
+                            </AnimatePresence>
+                        )}
+                    </form>
                 </div>
             </div>
-
-            {/* Main Form */}
-            <div className="lg:col-span-8">
-                <form onSubmit={handleSubmit} className="space-y-10">
-
-                    {activeTab === "chapter" && (
-                        <AnimatePresence mode="wait">
-                            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-10">
-
-                                {/* 1. Metadata */}
-                                <section className="bg-white dark:bg-zinc-900/10 p-6 rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-sm dark:shadow-none space-y-6">
-                                    <div className="flex items-center gap-2 pb-2 border-b border-zinc-100 dark:border-zinc-800">
-                                        <FileText size={16} className="text-zinc-400"/>
-                                        <h2 className="text-sm font-bold text-zinc-900 dark:text-white uppercase tracking-wider">Chapter Metadata</h2>
-                                    </div>
-                                    <div className="grid grid-cols-2 md:grid-cols-4 gap-5">
-                                        <div className="col-span-1"><InputLabel>Class Level</InputLabel><ThemedInput type="number" value={chapterForm.classLevel} onChange={(e) => setChapterForm({...chapterForm, classLevel: e.target.value})} /></div>
-                                        <div className="col-span-1"><InputLabel>Chapter No.</InputLabel><ThemedInput type="number" value={chapterForm.chapterNumber} onChange={(e) => setChapterForm({...chapterForm, chapterNumber: e.target.value})} /></div>
-                                        <div className="col-span-2"><InputLabel>Author Name</InputLabel><ThemedInput value={chapterForm.author} onChange={(e) => setChapterForm({...chapterForm, author: e.target.value})} /></div>
-                                        <div className="col-span-4"><InputLabel>Chapter Title</InputLabel><ThemedInput value={chapterForm.title} onChange={(e) => setChapterForm({...chapterForm, title: e.target.value})} className="text-lg font-medium" /></div>
-
-                                        {/* Cover Image Upload */}
-                                        <div className="col-span-4">
-                                            <InputLabel>Cover Image (Optional)</InputLabel>
-                                            <div className="flex items-center gap-4 mt-2">
-                                                {chapterForm.coverImage && (
-                                                    <div className="relative w-20 h-20 rounded-lg overflow-hidden border border-zinc-200 dark:border-zinc-700 group">
-                                                        <img src={chapterForm.coverImage} alt="Cover" className="w-full h-full object-cover"/>
-                                                        <button type="button" onClick={() => setChapterForm(prev => ({...prev, coverImage: ""}))} className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity text-white"><Trash2 size={16}/></button>
-                                                    </div>
-                                                )}
-                                                <label className={`flex items-center gap-2 px-4 py-2 bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 rounded-lg cursor-pointer transition-colors text-xs font-bold text-zinc-600 dark:text-zinc-300 ${uploadState.target ? 'opacity-50 cursor-not-allowed' : ''}`}>
-                                                    {/* GEMINI-LIKE LOADER */}
-                                                    {uploadState.target === 'cover' ? (
-                                                        <div className="flex items-center gap-2 text-indigo-600 dark:text-indigo-400">
-                                                            <CircularProgress percentage={uploadState.progress} />
-                                                            <span>{uploadState.progress}%</span>
-                                                        </div>
-                                                    ) : (
-                                                        <>
-                                                            <UploadCloud size={14}/>
-                                                            <span>{chapterForm.coverImage ? "Change Cover" : "Upload Cover"}</span>
-                                                        </>
-                                                    )}
-                                                    <input type="file" accept="image/*" className="hidden" onChange={(e) => handleCoverImageUpload(e.target.files[0])} disabled={!!uploadState.target} />
-                                                </label>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </section>
-
-                                {/* 2. Units Loop */}
-                                {chapterForm.units?.map((unit, uIdx) => (
-                                    <motion.div key={uIdx} initial={{opacity:0, y:20}} animate={{opacity:1, y:0}} className="bg-white dark:bg-zinc-900/10 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-6 relative shadow-sm dark:shadow-none">
-                                            {/* ... (Existing Unit Code) ... */}
-                                            <div className="flex gap-4 mb-6 pb-6 border-b border-zinc-100 dark:border-zinc-800">
-                                                <div className="flex-1"><InputLabel>Unit Title</InputLabel><ThemedInput value={unit.title} onChange={(e) => updateUnitTitle(uIdx, e.target.value)} /></div>
-                                                <button type="button" onClick={() => removeUnit(uIdx)} className="mt-6 p-2 text-zinc-400 hover:text-black dark:hover:text-white rounded-lg transition-colors"><Trash2 size={18} /></button>
-                                            </div>
-
-                                            {/* Paragraphs */}
-                                            <div className="space-y-5 mb-8">
-                                                <h3 className="text-xs font-bold text-zinc-400 uppercase tracking-widest flex items-center gap-2"><AlignLeft size={14}/> Text Content</h3>
-                                                {unit.paragraphs?.map((p, pIdx) => (
-                                                    <div key={pIdx} className="space-y-3 group bg-zinc-50/50 dark:bg-zinc-900/20 p-4 rounded-xl border border-zinc-100 dark:border-zinc-800/50">
-                                                        <div className="grid md:grid-cols-2 gap-4">
-                                                            <ThemedTextarea value={p.english} onChange={(e) => updateParagraph(uIdx, pIdx, 'english', e.target.value)} placeholder="English text..." />
-                                                            <div className="relative">
-                                                                <ThemedTextarea value={p.bengali} onChange={(e) => updateParagraph(uIdx, pIdx, 'bengali', e.target.value)} placeholder="Bengali translation..." />
-                                                                <button type="button" onClick={() => removeParagraph(uIdx, pIdx)} className="absolute top-2 right-2 p-1 text-zinc-300 hover:text-black dark:hover:text-white hover:bg-zinc-200 dark:hover:bg-zinc-800 rounded transition-all"><X size={14}/></button>
-                                                            </div>
-                                                        </div>
-                                                        {/* Paragraph Image Upload */}
-                                                        <div className="flex items-center gap-3 pt-2 border-t border-dashed border-zinc-200 dark:border-zinc-800">
-                                                            {p.image ? (
-                                                                <div className="flex items-center gap-3 p-1.5 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg">
-                                                                    <img src={p.image} alt="Paragraph visual" className="w-12 h-12 object-cover rounded-md"/>
-                                                                    <div className="flex flex-col">
-                                                                        <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400">Image Attached</span>
-                                                                        <button type="button" onClick={() => updateParagraph(uIdx, pIdx, 'image', "")} className="text-[10px] text-red-500 hover:underline text-left">Remove</button>
-                                                                    </div>
-                                                                </div>
-                                                            ) : (
-                                                                <label className={`flex items-center gap-2 px-3 py-1.5 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-md cursor-pointer hover:border-zinc-400 transition-all text-[10px] font-bold text-zinc-500 hover:text-black dark:hover:text-white ${uploadState.target ? 'opacity-50 cursor-not-allowed' : ''}`}>
-                                                                    {/* GEMINI-LIKE LOADER */}
-                                                                    {uploadState.target === `u-${uIdx}-p-${pIdx}` ? (
-                                                                        <div className="flex items-center gap-2 text-indigo-600 dark:text-indigo-400">
-                                                                            <CircularProgress percentage={uploadState.progress} size={14} strokeWidth={2} />
-                                                                            <span>{uploadState.progress}%</span>
-                                                                        </div>
-                                                                    ) : (
-                                                                        <>
-                                                                            <ImageIcon size={12}/>
-                                                                            <span>Add Illustration</span>
-                                                                        </>
-                                                                    )}
-                                                                    <input type="file" accept="image/*" className="hidden" onChange={(e) => handleParagraphImageUpload(uIdx, pIdx, e.target.files[0])} disabled={!!uploadState.target} />
-                                                                </label>
-                                                            )}
-                                                        </div>
-                                                    </div>
-                                                ))}
-                                                <button type="button" onClick={() => addParagraph(uIdx)} className="w-full py-2.5 border border-dashed border-zinc-300 dark:border-zinc-700 rounded-lg text-xs font-bold text-zinc-500 hover:text-black dark:hover:text-white hover:border-zinc-400 transition-colors">+ Add Paragraph Block</button>
-                                            </div>
-
-                                            {/* Activities */}
-                                            <div className="pt-6 border-t border-zinc-100 dark:border-zinc-800/50 mb-8">
-                                                <div className="flex justify-between items-center mb-6">
-                                                    <h3 className="text-xs font-bold text-zinc-400 uppercase tracking-widest flex items-center gap-2"><Layers size={14}/> Interactive Activities</h3>
-                                                    <div className="group relative z-20">
-                                                        <button type="button" className="text-xs font-bold text-zinc-800 dark:text-zinc-200 bg-zinc-100 dark:bg-zinc-800 px-3 py-1.5 rounded-md flex items-center gap-1 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors"><Plus size={14}/> Add Activity</button>
-                                                        <div className="absolute right-0 top-full mt-2 w-48 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-lg shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-10 flex flex-col p-1 transform origin-top-right scale-95 group-hover:scale-100 max-h-60 overflow-y-auto custom-scrollbar">
-                                                            {['MCQ', 'TRUE_FALSE', 'MATCHING', 'FILL_BLANKS', 'WORD_BOX', 'REARRANGE', 'UNDERLINE', 'UNDERLINE_CIRCLE', 'CATEGORIZE', 'CAUSE_EFFECT', 'QA', 'CHART_FILL'].map(type => (
-                                                                <button key={type} type="button" onClick={() => addActivityGroup(uIdx, type)} className="text-left px-3 py-2 text-xs font-medium hover:bg-zinc-50 dark:hover:bg-zinc-800 rounded text-zinc-600 dark:text-zinc-300 flex items-center gap-2 hover:text-black dark:hover:text-white">
-                                                                    {type.replace('_', ' ')}
-                                                                </button>
-                                                            ))}
-                                                        </div>
-                                                    </div>
-                                                </div>
-
-                                                <div className="space-y-6">
-                                                    {unit.activities?.map((act, actIdx) => (
-                                                        <ActivityBuilder
-                                                            key={actIdx}
-                                                            unitIdx={uIdx}
-                                                            actIdx={actIdx}
-                                                            activity={act}
-                                                            onChange={(newAct) => updateActivity(uIdx, actIdx, newAct)}
-                                                            onRemove={() => removeActivity(uIdx, actIdx)}
-                                                        />
-                                                    ))}
-                                                </div>
-                                            </div>
-
-                                            {/* Writing Skills */}
-                                            <div className="pt-6 border-t border-zinc-100 dark:border-zinc-800/50">
-                                                <div className="flex justify-between items-center mb-6">
-                                                    <h3 className="text-xs font-bold text-zinc-400 uppercase tracking-widest flex items-center gap-2"><PenTool size={14}/> Writing Studio</h3>
-                                                    <div className="group relative z-20">
-                                                        <button type="button" className="text-xs font-bold text-zinc-800 dark:text-zinc-200 bg-zinc-100 dark:bg-zinc-800 px-3 py-1.5 rounded-md flex items-center gap-1 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors"><Plus size={14}/> Add Writing Task</button>
-                                                        <div className="absolute right-0 top-full mt-2 w-48 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-lg shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-10 flex flex-col p-1 transform origin-top-right scale-95 group-hover:scale-100 max-h-60 overflow-y-auto custom-scrollbar">
-                                                            {['PARAGRAPH', 'STORY', 'NOTICE', 'FAMILY_CHART', 'FORMAL_LETTER', 'INFORMAL_LETTER', 'PROCESS', 'DIARY', 'DIALOGUE', 'SUMMARY'].map(type => (
-                                                                <button key={type} type="button" onClick={() => addWritingTask(uIdx, type)} className="text-left px-3 py-2 text-xs font-medium hover:bg-zinc-50 dark:hover:bg-zinc-800 rounded text-zinc-600 dark:text-zinc-300 hover:text-black dark:hover:text-white">
-                                                                    {type.replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, l => l.toUpperCase())}
-                                                                </button>
-                                                            ))}
-                                                        </div>
-                                                    </div>
-                                                </div>
-
-                                                <div className="space-y-6">
-                                                    {unit.writings?.map((write, wIdx) => (
-                                                        <WritingBuilder
-                                                            key={wIdx}
-                                                            unitIdx={uIdx}
-                                                            wIdx={wIdx}
-                                                            writing={write}
-                                                            onChange={(newWrite) => updateWriting(uIdx, wIdx, newWrite)}
-                                                            onRemove={() => removeWriting(uIdx, wIdx)}
-                                                        />
-                                                    ))}
-                                                </div>
-                                            </div>
-
-                                    </motion.div>
-                                ))}
-
-                                <button type="button" onClick={addUnit} className="w-full py-6 border border-dashed border-zinc-300 dark:border-zinc-800 rounded-xl text-zinc-500 hover:bg-zinc-50 dark:hover:bg-zinc-900/50 hover:text-black dark:hover:text-white transition-all flex flex-col items-center gap-2">
-                                    <Plus size={24} /> <span className="text-sm font-bold">Create New Unit</span>
-                                </button>
-                            </motion.div>
-                        </AnimatePresence>
-                    )}
-
-                    {/* Grammar Form */}
-                    {activeTab === "grammar" && (
-                        <AnimatePresence mode="wait">
-                            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-10">
-                                <section className="bg-white dark:bg-zinc-900/10 p-6 rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-sm dark:shadow-none space-y-6">
-                                    <div className="flex items-center gap-2 pb-2 border-b border-zinc-100 dark:border-zinc-800">
-                                        <PenTool size={16} className="text-zinc-400"/>
-                                        <h2 className="text-sm font-bold text-zinc-900 dark:text-white uppercase tracking-wider">Grammar Topic</h2>
-                                    </div>
-                                    <div className="grid grid-cols-1 gap-5">
-                                        <div><InputLabel>Topic Title</InputLabel><ThemedInput value={grammarForm.topic} onChange={(e) => setGrammarForm({...grammarForm, topic: e.target.value})} /></div>
-                                        <div><InputLabel>Description</InputLabel><ThemedTextarea value={grammarForm.description} onChange={(e) => setGrammarForm({...grammarForm, description: e.target.value})} placeholder="Brief description of the grammar topic..." /></div>
-
-                                        {/* ADDED: Grammar Cover Image Upload */}
-                                        <div className="col-span-1">
-                                            <InputLabel>Cover Image (Optional)</InputLabel>
-                                            <div className="flex items-center gap-4 mt-2">
-                                                {grammarForm.coverImage && (
-                                                    <div className="relative w-20 h-20 rounded-lg overflow-hidden border border-zinc-200 dark:border-zinc-700 group">
-                                                        <img src={grammarForm.coverImage} alt="Cover" className="w-full h-full object-cover"/>
-                                                        <button type="button" onClick={() => setGrammarForm(prev => ({...prev, coverImage: ""}))} className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity text-white"><Trash2 size={16}/></button>
-                                                    </div>
-                                                )}
-                                                <label className={`flex items-center gap-2 px-4 py-2 bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 rounded-lg cursor-pointer transition-colors text-xs font-bold text-zinc-600 dark:text-zinc-300 ${uploadState.target ? 'opacity-50 cursor-not-allowed' : ''}`}>
-                                                    {/* GEMINI-LIKE LOADER */}
-                                                    {uploadState.target === 'cover' ? (
-                                                        <div className="flex items-center gap-2 text-indigo-600 dark:text-indigo-400">
-                                                            <CircularProgress percentage={uploadState.progress} />
-                                                            <span>{uploadState.progress}%</span>
-                                                        </div>
-                                                    ) : (
-                                                        <>
-                                                            <UploadCloud size={14}/>
-                                                            <span>{grammarForm.coverImage ? "Change Cover" : "Upload Cover"}</span>
-                                                        </>
-                                                    )}
-                                                    <input type="file" accept="image/*" className="hidden" onChange={(e) => handleCoverImageUpload(e.target.files[0])} disabled={!!uploadState.target} />
-                                                </label>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </section>
-
-                                {grammarForm.sections.map((sec, idx) => (
-                                    <motion.div key={idx} initial={{opacity:0, y:20}} animate={{opacity:1, y:0}} className="bg-white dark:bg-zinc-900/10 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-6 relative">
-                                            <div className="flex gap-4 mb-4 pb-4 border-b border-zinc-100 dark:border-zinc-800">
-                                                <div className="flex-1"><InputLabel>Rule Title</InputLabel><ThemedInput value={sec.title} onChange={(e) => updateSection(idx, 'title', e.target.value)} /></div>
-                                                <button type="button" onClick={() => removeGrammarSection(idx)} className="mt-6 p-2 text-zinc-400 hover:text-black dark:hover:text-white"><Trash2 size={18} /></button>
-                                            </div>
-                                            <div className="mb-6"><InputLabel>Explanation</InputLabel><ThemedTextarea value={sec.content} onChange={(e) => updateSection(idx, 'content', e.target.value)} /></div>
-
-                                            <div className="bg-zinc-50 dark:bg-zinc-900/50 p-5 rounded-xl border border-zinc-100 dark:border-zinc-800/50">
-                                                <div className="flex justify-between items-center mb-3">
-                                                    <span className="text-xs font-bold text-zinc-500 uppercase flex items-center gap-1"><Lightbulb size={12}/> Examples</span>
-                                                    <button type="button" onClick={() => addExample(idx)} className="text-[10px] bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 px-2 py-1 rounded hover:bg-zinc-100 dark:hover:bg-zinc-700 hover:text-black dark:hover:text-white shadow-sm">+ Add</button>
-                                                </div>
-                                                <div className="space-y-3">
-                                                    {sec.examples.map((ex, exIdx) => (
-                                                        <div key={exIdx} className="flex gap-2 items-start">
-                                                            <div className="flex-1 grid gap-2">
-                                                                <input className="w-full bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded px-2 py-1.5 text-sm outline-none focus:border-zinc-500 focus:ring-1 focus:ring-zinc-500" placeholder="Sentence..." value={ex.sentence} onChange={(e) => updateExample(idx, exIdx, 'sentence', e.target.value)} />
-                                                                <input className="w-full bg-transparent border-b border-dashed border-zinc-300 dark:border-zinc-700 px-2 py-1 text-xs text-zinc-500 outline-none" placeholder="Why is this correct? (Optional)" value={ex.explanation} onChange={(e) => updateExample(idx, exIdx, 'explanation', e.target.value)} />
-                                                            </div>
-                                                            <button type="button" onClick={() => removeExample(idx, exIdx)} className="p-1 text-zinc-400 hover:text-black dark:hover:text-white"><Trash2 size={14} /></button>
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                            </div>
-                                    </motion.div>
-                                ))}
-                                <button type="button" onClick={addGrammarSection} className="w-full py-4 border border-dashed border-zinc-300 rounded-xl text-zinc-500 text-sm hover:bg-zinc-50 hover:text-black transition-colors">+ Add New Rule</button>
-                            </motion.div>
-                        </AnimatePresence>
-                    )}
-                </form>
-            </div>
-        </div>
+        )}
       </main>
 
-      {/* Floating Save Bar */}
-      <motion.div initial={{y:100}} animate={{y:0}} className="fixed bottom-6 inset-x-0 z-50 flex justify-center px-4 pointer-events-none">
-        <div className="bg-white/90 dark:bg-zinc-900/90 backdrop-blur-md border border-zinc-200 dark:border-zinc-800 p-2 pl-6 rounded-full shadow-2xl flex items-center gap-4 pointer-events-auto">
-            <span className="text-xs text-zinc-500 font-medium hidden sm:inline">{editingId ? "Updating Content..." : "Creating New Content..."}</span>
-            <div className="h-4 w-px bg-zinc-200 dark:bg-zinc-700 hidden sm:block"></div>
-            <button onClick={handleSubmit} disabled={loading || !!uploadState.target} className={`flex items-center gap-2 px-6 py-2.5 bg-black dark:bg-white text-white dark:text-black text-sm font-bold rounded-full hover:scale-105 active:scale-95 transition-all ${loading || !!uploadState.target ? 'opacity-80 cursor-not-allowed' : ''}`}>
-                {loading || !!uploadState.target ? <Loader2 size={16} className="animate-spin"/> : <Save size={16} />}
-                <span>{editingId ? 'Update Changes' : 'Publish Now'}</span>
-            </button>
-        </div>
-      </motion.div>
+      {/* Floating Save Bar - ONLY SHOW FOR CHAPTER/GRAMMAR */}
+      {activeTab !== 'classes' && (
+          <motion.div initial={{y:100}} animate={{y:0}} className="fixed bottom-6 inset-x-0 z-50 flex justify-center px-4 pointer-events-none">
+            <div className="bg-white/90 dark:bg-zinc-900/90 backdrop-blur-md border border-zinc-200 dark:border-zinc-800 p-2 pl-6 rounded-full shadow-2xl flex items-center gap-4 pointer-events-auto">
+                <span className="text-xs text-zinc-500 font-medium hidden sm:inline">{editingId ? "Updating Content..." : "Creating New Content..."}</span>
+                <div className="h-4 w-px bg-zinc-200 dark:bg-zinc-700 hidden sm:block"></div>
+                <button onClick={handleSubmit} disabled={loading || !!uploadState.target} className={`flex items-center gap-2 px-6 py-2.5 bg-black dark:bg-white text-white dark:text-black text-sm font-bold rounded-full hover:scale-105 active:scale-95 transition-all ${loading || !!uploadState.target ? 'opacity-80 cursor-not-allowed' : ''}`}>
+                    {loading || !!uploadState.target ? <Loader2 size={16} className="animate-spin"/> : <Save size={16} />}
+                    <span>{editingId ? 'Update Changes' : 'Publish Now'}</span>
+                </button>
+            </div>
+          </motion.div>
+      )}
 
       {/* Toast Notification (Monochrome) */}
       <AnimatePresence>
