@@ -12,7 +12,7 @@ export async function POST(req) {
     // ---------------------------------------------------------
     if (body.action === 'generate_passage') {
       const { length = "200", topic = "General Knowledge" } = body;
-      const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+      const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash-lite" });
 
       const prompt = `
         Write a unique reading comprehension passage for an English exam.
@@ -33,7 +33,76 @@ export async function POST(req) {
     }
 
     // ---------------------------------------------------------
-    // MODE 2: Generate Questions (Existing Logic)
+    // MODE 3: Generate Game Content (English Arcade)
+    // ---------------------------------------------------------
+    if (body.action === 'generate_game_content') {
+      const { gameType, difficulty = "Medium", lastWord, history } = body;
+      const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash-lite" });
+
+      let prompt = "";
+
+      if (gameType === 'RIDDLE') {
+        prompt = `
+          Generate a unique, witty riddle for a school student.
+          Difficulty: ${difficulty}.
+          Target Answer: A single common English noun (e.g., Candle, Shadow, Echo, Book).
+
+          OUTPUT JSON FORMAT (No Markdown):
+          {
+            "question": "The riddle text here...",
+            "answer": "The Answer",
+            "hint": "A subtle hint"
+          }
+        `;
+      }
+      else if (gameType === 'DETECTIVE') {
+        prompt = `
+          Generate a "Fill in the Missing Word" context puzzle.
+          Difficulty: ${difficulty}.
+          The missing word should be a slightly advanced vocabulary word (e.g., Reluctant, Vivid, Fragile).
+
+          OUTPUT JSON FORMAT (No Markdown):
+          {
+            "sentence": "The sentence with the word replaced by _______.",
+            "answer": "TheWord",
+            "meaning": "Definition of the word"
+          }
+        `;
+      }
+      else if (gameType === 'WORD_CHAIN') {
+        prompt = `
+          You are playing Word Chain.
+          User's word: "${lastWord}".
+          History: [${history.join(', ')}].
+
+          TASK:
+          1. STRICTLY VALIDATE "${lastWord}". Is it a real, standard English word found in a dictionary?
+             - "yzz", "abc", "hji" are NOT valid.
+             - Names like "Rahul" are NOT valid.
+             - If INVALID: Return JSON with "userLost": true and "message": "That's not a real word!".
+
+          2. IF VALID:
+             - Generate a response word starting with the last letter of "${lastWord}".
+             - It MUST NOT be in the history list.
+             - If you cannot find a word, set "aiLost": true.
+
+          OUTPUT JSON FORMAT (No Markdown):
+          {
+            "word": "YourWord",
+            "userLost": boolean,
+            "aiLost": boolean,
+            "message": "Short comment."
+          }
+        `;
+      }
+
+      const result = await model.generateContent(prompt);
+      const text = result.response.text().replace(/```json/g, '').replace(/```/g, '').trim();
+      return NextResponse.json(JSON.parse(text));
+    }
+
+    // ---------------------------------------------------------
+    // MODE 2: Generate Questions (Default)
     // ---------------------------------------------------------
     const { passage, type, marks, count = 3 } = body;
 
@@ -68,9 +137,7 @@ export async function POST(req) {
     const response = await result.response;
     let text = response.text();
 
-    // Clean up markdown if Gemini adds it
     text = text.replace(/```json/g, '').replace(/```/g, '').trim();
-
     const questions = JSON.parse(text);
 
     return NextResponse.json({ questions });

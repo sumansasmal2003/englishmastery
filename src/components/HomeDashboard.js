@@ -3,7 +3,8 @@ import { useState } from "react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  BookOpen, X, ChevronRight, Command, PenTool, ArrowRight, Search, FileText, Sparkles, GraduationCap
+  BookOpen, X, ChevronRight, Command, PenTool, ArrowRight, Search, FileText, Sparkles, GraduationCap,
+  Image as ImageIcon, Gamepad2, Trophy
 } from "lucide-react";
 
 // --- Animations ---
@@ -13,20 +14,35 @@ const itemVariants = { hidden: { opacity: 0, y: 10 }, show: { opacity: 1, y: 0 }
 // --- "SUBTLE GRAPH" BORDER ---
 const GraphBorder = ({ side = "left" }) => {
   const isLeft = side === "left";
-  // Position classes
   const containerClass = isLeft ? "left-0" : "right-0";
 
   return (
     <div className={`fixed ${containerClass} top-0 bottom-0 w-16 z-20 hidden xl:flex flex-col items-center bg-white/50 dark:bg-black/50 backdrop-blur-[2px] border-${side === 'left' ? 'r' : 'l'} border-zinc-200 dark:border-zinc-800`}>
-      {/* Inner Vertical Line */}
       <div className={`absolute top-0 bottom-0 ${isLeft ? "right-1" : "left-1"} w-px bg-zinc-200 dark:bg-zinc-800`}></div>
-
-      {/* The Subtle Graph Styling */}
       <div className="absolute inset-0 w-full h-full opacity-40 pointer-events-none">
-          <div
-            className="absolute inset-0 bg-[linear-gradient(to_right,#8080801a_1px,transparent_1px),linear-gradient(to_bottom,#8080801a_1px,transparent_1px)] bg-[size:20px_20px]"
-          ></div>
+          <div className="absolute inset-0 bg-[linear-gradient(to_right,#8080801a_1px,transparent_1px),linear-gradient(to_bottom,#8080801a_1px,transparent_1px)] bg-[size:20px_20px]"></div>
       </div>
+    </div>
+  );
+};
+
+// --- SMOOTH IMAGE LOADER ---
+const SmoothImage = ({ src, alt, className }) => {
+  const [isLoaded, setIsLoaded] = useState(false);
+
+  return (
+    <div className={`relative overflow-hidden ${className} bg-zinc-100 dark:bg-zinc-800`}>
+      {!isLoaded && (
+        <div className="absolute inset-0 animate-pulse bg-zinc-200 dark:bg-zinc-700 z-0" />
+      )}
+      <img
+        src={src}
+        alt={alt}
+        onLoad={() => setIsLoaded(true)}
+        className={`w-full h-full object-cover transition-all duration-700 ease-in-out ${
+          isLoaded ? "opacity-100 scale-100 blur-0" : "opacity-0 scale-105 blur-md"
+        }`}
+      />
     </div>
   );
 };
@@ -61,9 +77,7 @@ export default function HomeDashboard({ chapters = [], grammar = [], classInfos 
 
       {/* --- BACKGROUND DESIGN --- */}
       <div className="fixed inset-0 z-0 pointer-events-none">
-         <div
-           className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:40px_40px]"
-         ></div>
+         <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:40px_40px]"></div>
          <div className="absolute inset-0 opacity-20 dark:opacity-20" style={{
              backgroundImage: 'radial-gradient(#888 1px, transparent 1px)',
              backgroundSize: '40px 40px'
@@ -78,9 +92,7 @@ export default function HomeDashboard({ chapters = [], grammar = [], classInfos 
       {/* --- Header --- */}
       <header className="fixed top-0 inset-x-0 z-50 border-b border-zinc-200 dark:border-zinc-800 bg-white/80 dark:bg-black/80 backdrop-blur-md overflow-hidden">
         <div className="absolute inset-0 z-0 pointer-events-none opacity-40">
-            <div
-              className="absolute inset-0 bg-[linear-gradient(to_right,#8080801a_1px,transparent_1px),linear-gradient(to_bottom,#8080801a_1px,transparent_1px)] bg-[size:20px_20px]"
-            ></div>
+            <div className="absolute inset-0 bg-[linear-gradient(to_right,#8080801a_1px,transparent_1px),linear-gradient(to_bottom,#8080801a_1px,transparent_1px)] bg-[size:20px_20px]"></div>
         </div>
         <div className="relative z-10 max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -89,10 +101,20 @@ export default function HomeDashboard({ chapters = [], grammar = [], classInfos 
             </div>
             <span className="font-bold text-lg tracking-tight text-black dark:text-white">EnglishMastery</span>
           </div>
-          <Link href="/add-chapter" className="flex items-center gap-2 px-3 py-1.5 text-xs font-medium bg-zinc-50 hover:bg-zinc-100 border border-zinc-200 dark:bg-[#111] dark:hover:bg-[#222] dark:border-zinc-800 rounded text-zinc-600 dark:text-zinc-400 transition-all">
-            <Command size={12} />
-            <span>Admin Panel</span>
-          </Link>
+
+          <div className="flex items-center gap-3">
+            {/* NEW: Arcade Link */}
+            <Link href="/arcade" className="flex items-center gap-2 px-3 py-1.5 text-xs font-bold bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 dark:bg-indigo-900/20 dark:hover:bg-indigo-900/40 dark:border-indigo-800 rounded text-indigo-600 dark:text-indigo-400 transition-all">
+                <Gamepad2 size={14} />
+                <span>Arcade</span>
+            </Link>
+
+            {/* Admin Link */}
+            <Link href="/add-chapter" className="flex items-center gap-2 px-3 py-1.5 text-xs font-medium bg-zinc-50 hover:bg-zinc-100 border border-zinc-200 dark:bg-[#111] dark:hover:bg-[#222] dark:border-zinc-800 rounded text-zinc-600 dark:text-zinc-400 transition-all">
+                <Command size={12} />
+                <span>Admin</span>
+            </Link>
+          </div>
         </div>
       </header>
 
@@ -206,32 +228,28 @@ export default function HomeDashboard({ chapters = [], grammar = [], classInfos 
                                     key={cls}
                                     variants={itemVariants}
                                     onClick={() => setSelectedClass(cls)}
-                                    className="group relative flex flex-col justify-between h-48 p-6 w-full bg-white dark:bg-[#0a0a0a] border border-zinc-200 dark:border-zinc-800 hover:border-zinc-400 dark:hover:border-zinc-600 rounded-lg text-left transition-all duration-200 overflow-hidden shadow-sm hover:shadow-lg"
+                                    className="group relative flex flex-col justify-between h-48 w-full bg-white dark:bg-[#0a0a0a] border border-zinc-200 dark:border-zinc-800 hover:border-zinc-400 dark:hover:border-zinc-600 rounded-lg text-left transition-all duration-200 overflow-hidden shadow-sm hover:shadow-lg"
                                 >
-                                    {/* --- COVER IMAGE BACKGROUND --- */}
                                     {coverImg ? (
                                         <>
                                             <div className="absolute inset-0 z-0">
-                                                <img src={coverImg} alt={`Class ${cls}`} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
+                                                <SmoothImage src={coverImg} alt={`Class ${cls}`} className="w-full h-full" />
                                             </div>
-                                            {/* Gradient Overlay for Text Readability */}
                                             <div className="absolute inset-0 z-10 bg-gradient-to-t from-black/90 via-black/40 to-black/20" />
                                         </>
                                     ) : (
-                                        /* Fallback Watermark */
                                         <div className="absolute -bottom-6 -right-6 text-[10rem] font-black text-zinc-50 dark:text-[#111] leading-none select-none transition-transform duration-500 group-hover:scale-110 group-hover:-rotate-12 z-0">
                                             {cls}
                                         </div>
                                     )}
 
-                                    {/* Content (z-20 ensures it sits above image and overlay) */}
-                                    <div className="relative z-20 flex justify-between w-full">
+                                    <div className="relative z-20 flex justify-between w-full p-6 pb-0">
                                         <div className={`px-2 py-0.5 rounded text-[10px] font-mono border ${coverImg ? 'bg-black/50 border-white/20 text-white' : 'bg-zinc-100 dark:bg-[#111] border-zinc-200 dark:border-zinc-700 text-zinc-600 dark:text-zinc-400'}`}>
                                             {count} Units
                                         </div>
                                     </div>
 
-                                    <div className="relative z-20 mt-auto">
+                                    <div className="relative z-20 mt-auto p-6 pt-0">
                                         <div className="flex items-baseline gap-1">
                                             <span className={`text-4xl font-bold tracking-tighter transition-colors ${coverImg ? 'text-white' : 'text-zinc-900 dark:text-white group-hover:text-black dark:group-hover:text-white'}`}>{cls}</span>
                                             <span className={`text-sm font-medium ${coverImg ? 'text-zinc-300' : 'text-zinc-400'}`}>th</span>
@@ -248,7 +266,7 @@ export default function HomeDashboard({ chapters = [], grammar = [], classInfos 
 
                 {/* 2. GRAMMAR SECTION */}
                 <section>
-                        <div className="flex items-center gap-3 mb-6 px-1 border-b border-zinc-100 dark:border-zinc-900 pb-4">
+                    <div className="flex items-center gap-3 mb-6 px-1 border-b border-zinc-100 dark:border-zinc-900 pb-4">
                         <Sparkles className="text-zinc-800 dark:text-zinc-200" size={20} />
                         <div>
                             <h2 className="text-xl font-bold text-zinc-900 dark:text-white">Grammar Reference</h2>
@@ -280,6 +298,34 @@ export default function HomeDashboard({ chapters = [], grammar = [], classInfos 
                         </div>
                     )}
                 </section>
+
+                {/* 3. PRACTICE ZONE (NEW SECTION) */}
+                <section>
+                    <div className="flex items-center gap-3 mb-6 px-1 border-b border-zinc-100 dark:border-zinc-900 pb-4">
+                        <Trophy className="text-zinc-800 dark:text-zinc-200" size={20} />
+                        <div>
+                            <h2 className="text-xl font-bold text-zinc-900 dark:text-white">Practice Zone</h2>
+                        </div>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                         <Link href="/arcade" className="group relative overflow-hidden rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-[#0a0a0a] p-8 hover:border-indigo-400 dark:hover:border-indigo-600 transition-all">
+                              <div className="absolute top-0 right-0 p-6 opacity-10 group-hover:opacity-20 transition-opacity">
+                                  <Gamepad2 size={120} />
+                              </div>
+                              <div className="relative z-10">
+                                  <div className="w-10 h-10 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400 rounded-lg flex items-center justify-center mb-4">
+                                      <Gamepad2 size={20} />
+                                  </div>
+                                  <h3 className="text-xl font-bold text-zinc-900 dark:text-white mb-2">English Arcade</h3>
+                                  <p className="text-sm text-zinc-500 max-w-sm mb-6">Challenge yourself with interactive quizzes and games designed to test your vocabulary and grammar skills.</p>
+                                  <span className="inline-flex items-center gap-2 text-sm font-bold text-indigo-600 dark:text-indigo-400 group-hover:gap-3 transition-all">
+                                      Enter Arcade <ArrowRight size={16} />
+                                  </span>
+                              </div>
+                         </Link>
+                    </div>
+                </section>
+
             </div>
         )}
       </main>

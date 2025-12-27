@@ -1,76 +1,36 @@
 "use client";
 import { useState, useEffect } from "react";
 import {
-  Plus, Trash2, Save, Layers, FileText, BookOpen, PenTool, FilePlus, ArrowLeft, Loader2, AlignLeft, Lightbulb,
-  AlertCircle,
-  CheckCircle2,
-  X,
-  Edit3,
-  Image as ImageIcon,
-  UploadCloud,
-  LayoutGrid
+  BookOpen, PenTool, FilePlus, ArrowLeft, Loader2, Save, LogOut,
+  AlertCircle, CheckCircle2, LayoutGrid, Edit3, FileText
 } from "lucide-react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
-import TestGenerator from "./components/TestGenerator";
-
-// Import Refactored Components
-import ActivityBuilder from "./components/ActivityBuilder";
-import WritingBuilder from "./components/WritingBuilder";
-import { InputLabel, ThemedInput, ThemedTextarea, SidebarSkeleton } from "./components/SharedUI";
 import { signOut } from "next-auth/react";
-import { LogOut } from "lucide-react";
 
-// --- NEW COMPONENT: CIRCULAR PROGRESS LOADER ---
-const CircularProgress = ({ percentage, size = 18, strokeWidth = 2.5 }) => {
-  const radius = (size - strokeWidth) / 2;
-  const circumference = radius * 2 * Math.PI;
-  const offset = circumference - (percentage / 100) * circumference;
-
-  return (
-    <div className="relative flex items-center justify-center">
-      <svg width={size} height={size} className="transform -rotate-90">
-        <circle
-          cx={size / 2}
-          cy={size / 2}
-          r={radius}
-          stroke="currentColor"
-          strokeWidth={strokeWidth}
-          fill="transparent"
-          className="text-zinc-200 dark:text-zinc-700"
-        />
-        <circle
-          cx={size / 2}
-          cy={size / 2}
-          r={radius}
-          stroke="currentColor"
-          strokeWidth={strokeWidth}
-          fill="transparent"
-          strokeDasharray={circumference}
-          strokeDashoffset={offset}
-          strokeLinecap="round"
-          className="text-indigo-600 dark:text-indigo-400 transition-all duration-200 ease-linear"
-        />
-      </svg>
-    </div>
-  );
-};
+import TestGenerator from "./components/TestGenerator";
+import { SidebarSkeleton } from "./components/SharedUI";
+import ChapterEditor from "@/components/admin/ChapterEditor";
+import GrammarEditor from "@/components/admin/GrammarEditor";
+import ClassManager from "@/components/admin/ClassManager";
 
 export default function AdminPanel() {
   const [activeTab, setActiveTab] = useState("chapter");
   const [loading, setLoading] = useState(false);
   const [fetching, setFetching] = useState(true);
+
+  // Data State
   const [chaptersList, setChaptersList] = useState([]);
   const [grammarList, setGrammarList] = useState([]);
-  const [classInfos, setClassInfos] = useState([]); // State for Class Covers
+  const [classInfos, setClassInfos] = useState([]);
+
+  // UI State
   const [notification, setNotification] = useState(null);
   const [editingId, setEditingId] = useState(null);
   const [showTestModal, setShowTestModal] = useState(false);
-
-  // --- UPLOAD STATE ---
   const [uploadState, setUploadState] = useState({ target: null, progress: 0 });
 
-  // --- Initial States ---
+  // Form State
   const initialChapterState = {
     classLevel: 3,
     title: "",
@@ -90,6 +50,7 @@ export default function AdminPanel() {
   const [chapterForm, setChapterForm] = useState(initialChapterState);
   const [grammarForm, setGrammarForm] = useState(initialGrammarState);
 
+  // Fetch Data on Tab Change
   useEffect(() => { fetchData(); }, [activeTab]);
 
   async function fetchData() {
@@ -98,7 +59,7 @@ export default function AdminPanel() {
         let endpoint = "";
         if (activeTab === "chapter") endpoint = "/api/chapters";
         else if (activeTab === "grammar") endpoint = "/api/grammar";
-        else endpoint = "/api/classes"; // Endpoint for classes
+        else endpoint = "/api/classes";
 
         const res = await fetch(endpoint);
         const data = await res.json();
@@ -110,79 +71,7 @@ export default function AdminPanel() {
     } catch (error) { console.error(error); } finally { setFetching(false); }
   }
 
-  // --- CLOUDINARY UPLOAD WITH PROGRESS ---
-  const uploadToCloudinary = (file, targetId) => {
-    return new Promise((resolve, reject) => {
-      if (!file) return reject("No file");
-
-      if (!process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || !process.env.NEXT_PUBLIC_CLOUDINARY_PRESET) {
-          showNotification('error', 'Cloudinary keys missing');
-          return reject("Config missing");
-      }
-
-      const formData = new FormData();
-      formData.append("file", file);
-      formData.append("upload_preset", process.env.NEXT_PUBLIC_CLOUDINARY_PRESET);
-
-      const xhr = new XMLHttpRequest();
-      xhr.open("POST", `https://api.cloudinary.com/v1_1/${process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME}/image/upload`);
-
-      // Track Progress
-      xhr.upload.onprogress = (e) => {
-        if (e.lengthComputable) {
-          const percent = Math.round((e.loaded / e.total) * 100);
-          setUploadState({ target: targetId, progress: percent });
-        }
-      };
-
-      xhr.onload = () => {
-        if (xhr.status === 200) {
-          const data = JSON.parse(xhr.responseText);
-          setUploadState({ target: null, progress: 0 }); // Reset on success
-          resolve(data.secure_url);
-        } else {
-          setUploadState({ target: null, progress: 0 });
-          reject("Upload failed");
-        }
-      };
-
-      xhr.onerror = () => {
-        setUploadState({ target: null, progress: 0 });
-        reject("Network error");
-      };
-
-      xhr.send(formData);
-    });
-  };
-
-  // --- HANDLER: Class Image Upload ---
-  const handleClassImageUpload = async (classLevel, file) => {
-    try {
-        setUploadState({ target: `class-${classLevel}`, progress: 1 });
-        const url = await uploadToCloudinary(file, `class-${classLevel}`);
-
-        // Save to DB immediately
-        const res = await fetch('/api/classes', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ classLevel, coverImage: url })
-        });
-        const data = await res.json();
-
-        if (data.success) {
-            showNotification('success', `Class ${classLevel} image updated`);
-            fetchData(); // Refresh list
-        } else {
-            showNotification('error', data.error);
-        }
-    } catch (e) {
-        showNotification('error', 'Upload failed');
-    } finally {
-        setUploadState({ target: null, progress: 0 });
-    }
-  };
-
-  // --- Helpers ---
+  // --- ACTIONS ---
   const showNotification = (type, message) => {
     setNotification({ type, message });
     setTimeout(() => setNotification(null), 4000);
@@ -217,148 +106,6 @@ export default function AdminPanel() {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  // --- HANDLERS: Forms ---
-  const handleCoverImageUpload = async (file) => {
-      try {
-          const url = await uploadToCloudinary(file, 'cover');
-          if (activeTab === "chapter") {
-              setChapterForm(prev => ({ ...prev, coverImage: url }));
-          } else {
-              setGrammarForm(prev => ({ ...prev, coverImage: url }));
-          }
-      } catch (e) {
-          showNotification('error', 'Failed to upload cover image');
-      }
-  };
-
-  const handleParagraphImageUpload = async (unitIdx, pIdx, file) => {
-      const targetId = `u-${unitIdx}-p-${pIdx}`;
-      try {
-          const url = await uploadToCloudinary(file, targetId);
-          updateParagraph(unitIdx, pIdx, 'image', url);
-      } catch (e) {
-          showNotification('error', 'Failed to upload image');
-      }
-  };
-
-  // =========================================================================
-  // CORE HANDLERS: UNIT & PARAGRAPHS
-  // =========================================================================
-
-  const addUnit = () => setChapterForm({ ...chapterForm, units: [...chapterForm.units, { title: `Unit ${chapterForm.units.length + 1}`, paragraphs: [], activities: [], writings: [] }] });
-  const updateUnitTitle = (i, v) => { const u = [...chapterForm.units]; u[i].title = v; setChapterForm({ ...chapterForm, units: u }); };
-  const removeUnit = (i) => { const u = [...chapterForm.units]; u.splice(i, 1); setChapterForm({ ...chapterForm, units: u }); };
-
-  const addParagraph = (i) => { const u = [...chapterForm.units]; u[i].paragraphs.push({english:"",bengali:"", image: ""}); setChapterForm({...chapterForm, units:u}); };
-  const updateParagraph = (i, p, f, v) => { const u = [...chapterForm.units]; u[i].paragraphs[p][f] = v; setChapterForm({...chapterForm, units:u}); };
-  const removeParagraph = (i, p) => { const u = [...chapterForm.units]; u[i].paragraphs.splice(p, 1); setChapterForm({...chapterForm, units:u}); };
-
-  // =========================================================================
-  // BRIDGE HANDLERS: ACTIVITIES
-  // =========================================================================
-
-  const addActivityGroup = (unitIdx, type) => {
-      const u = [...chapterForm.units];
-      if (!u[unitIdx].activities) u[unitIdx].activities = [];
-
-      const defaultInstr = {
-          MCQ: "Choose the correct answer:",
-          TRUE_FALSE: "Write 'T' for true and 'F' for false:",
-          MATCHING: "Match Column A with Column B:",
-          FILL_BLANKS: "Fill in the blanks:",
-          WORD_BOX: "Fill in the blanks using words from the box:",
-          REARRANGE: "Rearrange the following sentences:",
-          UNDERLINE: "Underline the correct words:",
-          UNDERLINE_CIRCLE: "Underline countable nouns and Circle uncountable nouns:",
-          CATEGORIZE: "Put the underlined words in the correct columns:",
-          CAUSE_EFFECT: "Complete the table:",
-          QA: "Answer the following questions:"
-      };
-
-      u[unitIdx].activities.push({
-          type,
-          instruction: defaultInstr[type] || "Complete the activity:",
-          questions: [],
-          columnHeaders: []
-      });
-      setChapterForm({ ...chapterForm, units: u });
-  };
-
-  const updateActivity = (unitIdx, actIdx, newActivity) => {
-      const u = [...chapterForm.units];
-      u[unitIdx].activities[actIdx] = newActivity;
-      setChapterForm({ ...chapterForm, units: u });
-  };
-
-  const removeActivity = (unitIdx, actIdx) => {
-      const u = [...chapterForm.units];
-      u[unitIdx].activities.splice(actIdx, 1);
-      setChapterForm({ ...chapterForm, units: u });
-  };
-
-  // =========================================================================
-  // BRIDGE HANDLERS: WRITING SKILLS
-  // =========================================================================
-
-  const addWritingTask = (unitIdx, type) => {
-      const u = [...chapterForm.units];
-      if (!u[unitIdx].writings) u[unitIdx].writings = [];
-
-      let initialData = { wordLimit: "100 words" };
-      let defaultQuestion = "Write a...";
-
-      if (type === 'FAMILY_CHART') {
-          defaultQuestion = "Describe the relationships based on the chart.";
-          initialData = {
-              familyMembers: [{
-                  id: "root", parentId: null, partnerId: null,
-                  name: "Grandfather", relation: "Head", details: "Age 70"
-              }]
-          };
-      } else if (['STORY', 'PARAGRAPH', 'NOTICE'].includes(type)) {
-          initialData.hints = ["Point 1", "Point 2"];
-      } else if (type === 'DIALOGUE') {
-          defaultQuestion = "Write a dialogue between...";
-          initialData.characters = ["Person A", "Person B"];
-          initialData.setting = "Scene context...";
-      } else if (type === 'SUMMARY') {
-          defaultQuestion = "Write a summary of the following passage.";
-          initialData.passage = "Paste text here...";
-          initialData.wordLimit = "Approx. 50 words";
-      }
-
-      u[unitIdx].writings.push({
-          type: type,
-          question: defaultQuestion,
-          data: initialData,
-          modelAnswer: ""
-      });
-      setChapterForm({ ...chapterForm, units: u });
-  };
-
-  const updateWriting = (unitIdx, wIdx, newWriting) => {
-      const u = [...chapterForm.units];
-      u[unitIdx].writings[wIdx] = newWriting;
-      setChapterForm({ ...chapterForm, units: u });
-  };
-
-  const removeWriting = (unitIdx, wIdx) => {
-      const u = [...chapterForm.units];
-      u[unitIdx].writings.splice(wIdx, 1);
-      setChapterForm({ ...chapterForm, units: u });
-  };
-
-  // =========================================================================
-  // HANDLERS: GRAMMAR
-  // =========================================================================
-  const addGrammarSection = () => setGrammarForm({ ...grammarForm, sections: [...grammarForm.sections, { title: `Rule ${grammarForm.sections.length + 1}`, content: "", examples: [] }] });
-  const removeGrammarSection = (i) => { const s = [...grammarForm.sections]; s.splice(i, 1); setGrammarForm({ ...grammarForm, sections: s }); };
-  const updateSection = (i, f, v) => { const s = [...grammarForm.sections]; s[i][f] = v; setGrammarForm({ ...grammarForm, sections: s }); };
-  const addExample = (i) => { const s = [...grammarForm.sections]; s[i].examples.push({ sentence: "", explanation: "" }); setGrammarForm({ ...grammarForm, sections: s }); };
-  const updateExample = (sI, eI, f, v) => { const s = [...grammarForm.sections]; s[sI].examples[eI][f] = v; setGrammarForm({ ...grammarForm, sections: s }); };
-  const removeExample = (sI, eI) => { const s = [...grammarForm.sections]; s[sI].examples.splice(eI, 1); setGrammarForm({ ...grammarForm, sections: s }); };
-
-  // --- SUBMIT ---
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (uploadState.target) {
@@ -370,10 +117,17 @@ export default function AdminPanel() {
     const endpoint = activeTab === "chapter" ? "/api/chapters" : "/api/grammar";
     let payload = activeTab === "chapter" ? chapterForm : grammarForm;
     if (editingId) payload = { ...payload, _id: editingId };
+
     try {
       const res = await fetch(endpoint, { method, headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
       const data = await res.json();
-      if (data.success) { showNotification('success', 'Saved Successfully'); if(!editingId) resetForm(); fetchData(); } else { showNotification('error', data.error); }
+      if (data.success) {
+        showNotification('success', 'Saved Successfully');
+        if(!editingId) resetForm();
+        fetchData();
+      } else {
+        showNotification('error', data.error);
+      }
     } catch (err) { console.error(err); } finally { setLoading(false); }
   };
 
@@ -392,77 +146,33 @@ export default function AdminPanel() {
             </div>
           </div>
           <div className='flex items-center justify-center gap-2'>
-            <button
-                onClick={() => setShowTestModal(true)}
-                className="flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-bold transition-all bg-rose-100 dark:bg-rose-500/20 text-rose-600 dark:text-rose-400 hover:bg-rose-200"
-            >
+            <button onClick={() => setShowTestModal(true)} className="flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-bold transition-all bg-rose-100 dark:bg-rose-500/20 text-rose-600 dark:text-rose-400 hover:bg-rose-200">
                 <FileText size={14} /><span>Test Mode</span>
             </button>
 
-            {/* Hide "New" button when in Classes tab */}
             {activeTab !== 'classes' && (
                 <button onClick={resetForm} className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-bold transition-all ${!editingId ? 'bg-zinc-900 dark:bg-zinc-100 text-white dark:text-black' : 'bg-zinc-100 dark:bg-zinc-900 text-zinc-500 hover:text-black dark:hover:text-white'}`}><FilePlus size={14} /><span>New {activeTab === "chapter" ? "Chapter" : "Topic"}</span></button>
             )}
 
-            <button
-                onClick={() => signOut({ callbackUrl: '/login' })}
-                className="p-2 text-zinc-500 hover:text-black dark:hover:text-white transition-colors"
-                title="Sign Out"
-              >
+            <button onClick={() => signOut({ callbackUrl: '/login' })} className="p-2 text-zinc-500 hover:text-black dark:hover:text-white transition-colors" title="Sign Out">
                 <LogOut size={18} />
-              </button>
+            </button>
           </div>
         </div>
       </header>
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 pt-24 pb-32">
-
-        {/* --- MODE SWITCH: Grid for Classes vs. Sidebar+Form for Content --- */}
         {activeTab === 'classes' ? (
-             <div className="space-y-6">
-                 <div className="flex items-center gap-2 pb-2 border-b border-zinc-100 dark:border-zinc-800">
-                     <LayoutGrid size={16} className="text-zinc-400"/>
-                     <h2 className="text-sm font-bold text-zinc-900 dark:text-white uppercase tracking-wider">Manage Class Covers</h2>
-                 </div>
-
-                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6">
-                     {[3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map(cls => {
-                         const info = classInfos.find(i => i.classLevel === cls);
-                         const isUploading = uploadState.target === `class-${cls}`;
-
-                         return (
-                             <div key={cls} className="bg-white dark:bg-zinc-900/30 border border-zinc-200 dark:border-zinc-800 rounded-xl p-4 flex flex-col items-center gap-4 shadow-sm hover:shadow-md transition-shadow">
-                                 <div className="text-lg font-bold text-zinc-900 dark:text-white">Class {cls}</div>
-
-                                 <div className="relative w-full aspect-video bg-zinc-100 dark:bg-zinc-800 rounded-lg overflow-hidden border border-zinc-200 dark:border-zinc-700">
-                                     {info?.coverImage ? (
-                                         <img src={info.coverImage} alt={`Class ${cls}`} className="w-full h-full object-cover" />
-                                     ) : (
-                                         <div className="w-full h-full flex items-center justify-center text-zinc-400">
-                                             <ImageIcon size={24} opacity={0.5} />
-                                         </div>
-                                     )}
-                                     {isUploading && (
-                                         <div className="absolute inset-0 bg-black/60 flex items-center justify-center text-white text-xs font-bold">
-                                             {uploadState.progress}%
-                                         </div>
-                                     )}
-                                 </div>
-
-                                 <label className={`w-full py-2 flex items-center justify-center gap-2 bg-zinc-900 dark:bg-white text-white dark:text-black rounded-lg text-xs font-bold cursor-pointer hover:opacity-90 transition-opacity ${isUploading ? 'opacity-50 pointer-events-none' : ''}`}>
-                                     <UploadCloud size={14} />
-                                     <span>{info?.coverImage ? 'Change' : 'Upload'}</span>
-                                     <input type="file" accept="image/*" className="hidden" onChange={(e) => handleClassImageUpload(cls, e.target.files[0])} disabled={isUploading} />
-                                 </label>
-                             </div>
-                         );
-                     })}
-                 </div>
-             </div>
+             <ClassManager
+                classInfos={classInfos}
+                onRefresh={fetchData}
+                uploadState={uploadState}
+                setUploadState={setUploadState}
+                showNotification={showNotification}
+             />
         ) : (
-            /* --- DEFAULT VIEW: Sidebar + Form --- */
+            /* --- EDITORS VIEW --- */
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-
                 {/* Sidebar */}
                 <div className="lg:col-span-4 lg:sticky lg:top-24">
                     <div className="bg-white dark:bg-zinc-900/30 border border-zinc-200 dark:border-zinc-800 rounded-xl overflow-hidden shadow-sm max-h-[calc(100vh-12rem)] overflow-y-auto custom-scrollbar">
@@ -492,253 +202,26 @@ export default function AdminPanel() {
                     </div>
                 </div>
 
-                {/* Main Form */}
+                {/* Main Form Area */}
                 <div className="lg:col-span-8">
-                    <form onSubmit={handleSubmit} className="space-y-10">
-
+                    <form onSubmit={handleSubmit}>
                         {activeTab === "chapter" && (
-                            <AnimatePresence mode="wait">
-                                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-10">
-
-                                    {/* 1. Metadata */}
-                                    <section className="bg-white dark:bg-zinc-900/10 p-6 rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-sm dark:shadow-none space-y-6">
-                                        <div className="flex items-center gap-2 pb-2 border-b border-zinc-100 dark:border-zinc-800">
-                                            <FileText size={16} className="text-zinc-400"/>
-                                            <h2 className="text-sm font-bold text-zinc-900 dark:text-white uppercase tracking-wider">Chapter Metadata</h2>
-                                        </div>
-                                        <div className="grid grid-cols-2 md:grid-cols-4 gap-5">
-                                            <div className="col-span-1"><InputLabel>Class Level</InputLabel><ThemedInput type="number" value={chapterForm.classLevel} onChange={(e) => setChapterForm({...chapterForm, classLevel: e.target.value})} /></div>
-                                            <div className="col-span-1"><InputLabel>Chapter No.</InputLabel><ThemedInput type="number" value={chapterForm.chapterNumber} onChange={(e) => setChapterForm({...chapterForm, chapterNumber: e.target.value})} /></div>
-                                            <div className="col-span-2"><InputLabel>Author Name</InputLabel><ThemedInput value={chapterForm.author} onChange={(e) => setChapterForm({...chapterForm, author: e.target.value})} /></div>
-                                            <div className="col-span-4"><InputLabel>Chapter Title</InputLabel><ThemedInput value={chapterForm.title} onChange={(e) => setChapterForm({...chapterForm, title: e.target.value})} className="text-lg font-medium" /></div>
-
-                                            {/* Cover Image Upload */}
-                                            <div className="col-span-4">
-                                                <InputLabel>Cover Image (Optional)</InputLabel>
-                                                <div className="flex items-center gap-4 mt-2">
-                                                    {chapterForm.coverImage && (
-                                                        <div className="relative w-20 h-20 rounded-lg overflow-hidden border border-zinc-200 dark:border-zinc-700 group">
-                                                            <img src={chapterForm.coverImage} alt="Cover" className="w-full h-full object-cover"/>
-                                                            <button type="button" onClick={() => setChapterForm(prev => ({...prev, coverImage: ""}))} className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity text-white"><Trash2 size={16}/></button>
-                                                        </div>
-                                                    )}
-                                                    <label className={`flex items-center gap-2 px-4 py-2 bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 rounded-lg cursor-pointer transition-colors text-xs font-bold text-zinc-600 dark:text-zinc-300 ${uploadState.target ? 'opacity-50 cursor-not-allowed' : ''}`}>
-                                                        {/* GEMINI-LIKE LOADER */}
-                                                        {uploadState.target === 'cover' ? (
-                                                            <div className="flex items-center gap-2 text-indigo-600 dark:text-indigo-400">
-                                                                <CircularProgress percentage={uploadState.progress} />
-                                                                <span>{uploadState.progress}%</span>
-                                                            </div>
-                                                        ) : (
-                                                            <>
-                                                                <UploadCloud size={14}/>
-                                                                <span>{chapterForm.coverImage ? "Change Cover" : "Upload Cover"}</span>
-                                                            </>
-                                                        )}
-                                                        <input type="file" accept="image/*" className="hidden" onChange={(e) => handleCoverImageUpload(e.target.files[0])} disabled={!!uploadState.target} />
-                                                    </label>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </section>
-
-                                    {/* 2. Units Loop */}
-                                    {chapterForm.units?.map((unit, uIdx) => (
-                                        <motion.div key={uIdx} initial={{opacity:0, y:20}} animate={{opacity:1, y:0}} className="bg-white dark:bg-zinc-900/10 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-6 relative shadow-sm dark:shadow-none">
-                                                {/* ... (Existing Unit Code) ... */}
-                                                <div className="flex gap-4 mb-6 pb-6 border-b border-zinc-100 dark:border-zinc-800">
-                                                    <div className="flex-1"><InputLabel>Unit Title</InputLabel><ThemedInput value={unit.title} onChange={(e) => updateUnitTitle(uIdx, e.target.value)} /></div>
-                                                    <button type="button" onClick={() => removeUnit(uIdx)} className="mt-6 p-2 text-zinc-400 hover:text-black dark:hover:text-white rounded-lg transition-colors"><Trash2 size={18} /></button>
-                                                </div>
-
-                                                {/* Paragraphs */}
-                                                <div className="space-y-5 mb-8">
-                                                    <h3 className="text-xs font-bold text-zinc-400 uppercase tracking-widest flex items-center gap-2"><AlignLeft size={14}/> Text Content</h3>
-                                                    {unit.paragraphs?.map((p, pIdx) => (
-                                                        <div key={pIdx} className="space-y-3 group bg-zinc-50/50 dark:bg-zinc-900/20 p-4 rounded-xl border border-zinc-100 dark:border-zinc-800/50">
-                                                            <div className="grid md:grid-cols-2 gap-4">
-                                                                <ThemedTextarea value={p.english} onChange={(e) => updateParagraph(uIdx, pIdx, 'english', e.target.value)} placeholder="English text..." />
-                                                                <div className="relative">
-                                                                    <ThemedTextarea value={p.bengali} onChange={(e) => updateParagraph(uIdx, pIdx, 'bengali', e.target.value)} placeholder="Bengali translation..." />
-                                                                    <button type="button" onClick={() => removeParagraph(uIdx, pIdx)} className="absolute top-2 right-2 p-1 text-zinc-300 hover:text-black dark:hover:text-white hover:bg-zinc-200 dark:hover:bg-zinc-800 rounded transition-all"><X size={14}/></button>
-                                                                </div>
-                                                            </div>
-                                                            {/* Paragraph Image Upload */}
-                                                            <div className="flex items-center gap-3 pt-2 border-t border-dashed border-zinc-200 dark:border-zinc-800">
-                                                                {p.image ? (
-                                                                    <div className="flex items-center gap-3 p-1.5 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg">
-                                                                        <img src={p.image} alt="Paragraph visual" className="w-12 h-12 object-cover rounded-md"/>
-                                                                        <div className="flex flex-col">
-                                                                            <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400">Image Attached</span>
-                                                                            <button type="button" onClick={() => updateParagraph(uIdx, pIdx, 'image', "")} className="text-[10px] text-red-500 hover:underline text-left">Remove</button>
-                                                                        </div>
-                                                                    </div>
-                                                                ) : (
-                                                                    <label className={`flex items-center gap-2 px-3 py-1.5 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-md cursor-pointer hover:border-zinc-400 transition-all text-[10px] font-bold text-zinc-500 hover:text-black dark:hover:text-white ${uploadState.target ? 'opacity-50 cursor-not-allowed' : ''}`}>
-                                                                        {/* GEMINI-LIKE LOADER */}
-                                                                        {uploadState.target === `u-${uIdx}-p-${pIdx}` ? (
-                                                                            <div className="flex items-center gap-2 text-indigo-600 dark:text-indigo-400">
-                                                                                <CircularProgress percentage={uploadState.progress} size={14} strokeWidth={2} />
-                                                                                <span>{uploadState.progress}%</span>
-                                                                            </div>
-                                                                        ) : (
-                                                                            <>
-                                                                                <ImageIcon size={12}/>
-                                                                                <span>Add Illustration</span>
-                                                                            </>
-                                                                        )}
-                                                                        <input type="file" accept="image/*" className="hidden" onChange={(e) => handleParagraphImageUpload(uIdx, pIdx, e.target.files[0])} disabled={!!uploadState.target} />
-                                                                    </label>
-                                                                )}
-                                                            </div>
-                                                        </div>
-                                                    ))}
-                                                    <button type="button" onClick={() => addParagraph(uIdx)} className="w-full py-2.5 border border-dashed border-zinc-300 dark:border-zinc-700 rounded-lg text-xs font-bold text-zinc-500 hover:text-black dark:hover:text-white hover:border-zinc-400 transition-colors">+ Add Paragraph Block</button>
-                                                </div>
-
-                                                {/* Activities */}
-                                                <div className="pt-6 border-t border-zinc-100 dark:border-zinc-800/50 mb-8">
-                                                    <div className="flex justify-between items-center mb-6">
-                                                        <h3 className="text-xs font-bold text-zinc-400 uppercase tracking-widest flex items-center gap-2"><Layers size={14}/> Interactive Activities</h3>
-                                                        <div className="group relative z-20">
-                                                            <button type="button" className="text-xs font-bold text-zinc-800 dark:text-zinc-200 bg-zinc-100 dark:bg-zinc-800 px-3 py-1.5 rounded-md flex items-center gap-1 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors"><Plus size={14}/> Add Activity</button>
-                                                            <div className="absolute right-0 top-full mt-2 w-48 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-lg shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-10 flex flex-col p-1 transform origin-top-right scale-95 group-hover:scale-100 max-h-60 overflow-y-auto custom-scrollbar">
-                                                                {['MCQ', 'TRUE_FALSE', 'MATCHING', 'FILL_BLANKS', 'WORD_BOX', 'REARRANGE', 'UNDERLINE', 'UNDERLINE_CIRCLE', 'CATEGORIZE', 'CAUSE_EFFECT', 'QA', 'CHART_FILL'].map(type => (
-                                                                    <button key={type} type="button" onClick={() => addActivityGroup(uIdx, type)} className="text-left px-3 py-2 text-xs font-medium hover:bg-zinc-50 dark:hover:bg-zinc-800 rounded text-zinc-600 dark:text-zinc-300 flex items-center gap-2 hover:text-black dark:hover:text-white">
-                                                                        {type.replace('_', ' ')}
-                                                                    </button>
-                                                                ))}
-                                                            </div>
-                                                        </div>
-                                                    </div>
-
-                                                    <div className="space-y-6">
-                                                        {unit.activities?.map((act, actIdx) => (
-                                                            <ActivityBuilder
-                                                                key={actIdx}
-                                                                unitIdx={uIdx}
-                                                                actIdx={actIdx}
-                                                                activity={act}
-                                                                onChange={(newAct) => updateActivity(uIdx, actIdx, newAct)}
-                                                                onRemove={() => removeActivity(uIdx, actIdx)}
-                                                            />
-                                                        ))}
-                                                    </div>
-                                                </div>
-
-                                                {/* Writing Skills */}
-                                                <div className="pt-6 border-t border-zinc-100 dark:border-zinc-800/50">
-                                                    <div className="flex justify-between items-center mb-6">
-                                                        <h3 className="text-xs font-bold text-zinc-400 uppercase tracking-widest flex items-center gap-2"><PenTool size={14}/> Writing Studio</h3>
-                                                        <div className="group relative z-20">
-                                                            <button type="button" className="text-xs font-bold text-zinc-800 dark:text-zinc-200 bg-zinc-100 dark:bg-zinc-800 px-3 py-1.5 rounded-md flex items-center gap-1 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors"><Plus size={14}/> Add Writing Task</button>
-                                                            <div className="absolute right-0 top-full mt-2 w-48 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded-lg shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-10 flex flex-col p-1 transform origin-top-right scale-95 group-hover:scale-100 max-h-60 overflow-y-auto custom-scrollbar">
-                                                                {['PARAGRAPH', 'STORY', 'NOTICE', 'FAMILY_CHART', 'FORMAL_LETTER', 'INFORMAL_LETTER', 'PROCESS', 'DIARY', 'DIALOGUE', 'SUMMARY'].map(type => (
-                                                                    <button key={type} type="button" onClick={() => addWritingTask(uIdx, type)} className="text-left px-3 py-2 text-xs font-medium hover:bg-zinc-50 dark:hover:bg-zinc-800 rounded text-zinc-600 dark:text-zinc-300 hover:text-black dark:hover:text-white">
-                                                                        {type.replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, l => l.toUpperCase())}
-                                                                    </button>
-                                                                ))}
-                                                            </div>
-                                                        </div>
-                                                    </div>
-
-                                                    <div className="space-y-6">
-                                                        {unit.writings?.map((write, wIdx) => (
-                                                            <WritingBuilder
-                                                                key={wIdx}
-                                                                unitIdx={uIdx}
-                                                                wIdx={wIdx}
-                                                                writing={write}
-                                                                onChange={(newWrite) => updateWriting(uIdx, wIdx, newWrite)}
-                                                                onRemove={() => removeWriting(uIdx, wIdx)}
-                                                            />
-                                                        ))}
-                                                    </div>
-                                                </div>
-
-                                        </motion.div>
-                                    ))}
-
-                                    <button type="button" onClick={addUnit} className="w-full py-6 border border-dashed border-zinc-300 dark:border-zinc-800 rounded-xl text-zinc-500 hover:bg-zinc-50 dark:hover:bg-zinc-900/50 hover:text-black dark:hover:text-white transition-all flex flex-col items-center gap-2">
-                                        <Plus size={24} /> <span className="text-sm font-bold">Create New Unit</span>
-                                    </button>
-                                </motion.div>
-                            </AnimatePresence>
+                            <ChapterEditor
+                                form={chapterForm}
+                                setForm={setChapterForm}
+                                uploadState={uploadState}
+                                setUploadState={setUploadState}
+                                showNotification={showNotification}
+                            />
                         )}
-
-                        {/* Grammar Form */}
                         {activeTab === "grammar" && (
-                            <AnimatePresence mode="wait">
-                                <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="space-y-10">
-                                    <section className="bg-white dark:bg-zinc-900/10 p-6 rounded-2xl border border-zinc-200 dark:border-zinc-800 shadow-sm dark:shadow-none space-y-6">
-                                        <div className="flex items-center gap-2 pb-2 border-b border-zinc-100 dark:border-zinc-800">
-                                            <PenTool size={16} className="text-zinc-400"/>
-                                            <h2 className="text-sm font-bold text-zinc-900 dark:text-white uppercase tracking-wider">Grammar Topic</h2>
-                                        </div>
-                                        <div className="grid grid-cols-1 gap-5">
-                                            <div><InputLabel>Topic Title</InputLabel><ThemedInput value={grammarForm.topic} onChange={(e) => setGrammarForm({...grammarForm, topic: e.target.value})} /></div>
-                                            <div><InputLabel>Description</InputLabel><ThemedTextarea value={grammarForm.description} onChange={(e) => setGrammarForm({...grammarForm, description: e.target.value})} placeholder="Brief description of the grammar topic..." /></div>
-
-                                            {/* ADDED: Grammar Cover Image Upload */}
-                                            <div className="col-span-1">
-                                                <InputLabel>Cover Image (Optional)</InputLabel>
-                                                <div className="flex items-center gap-4 mt-2">
-                                                    {grammarForm.coverImage && (
-                                                        <div className="relative w-20 h-20 rounded-lg overflow-hidden border border-zinc-200 dark:border-zinc-700 group">
-                                                            <img src={grammarForm.coverImage} alt="Cover" className="w-full h-full object-cover"/>
-                                                            <button type="button" onClick={() => setGrammarForm(prev => ({...prev, coverImage: ""}))} className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity text-white"><Trash2 size={16}/></button>
-                                                        </div>
-                                                    )}
-                                                    <label className={`flex items-center gap-2 px-4 py-2 bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-700 rounded-lg cursor-pointer transition-colors text-xs font-bold text-zinc-600 dark:text-zinc-300 ${uploadState.target ? 'opacity-50 cursor-not-allowed' : ''}`}>
-                                                        {/* GEMINI-LIKE LOADER */}
-                                                        {uploadState.target === 'cover' ? (
-                                                            <div className="flex items-center gap-2 text-indigo-600 dark:text-indigo-400">
-                                                                <CircularProgress percentage={uploadState.progress} />
-                                                                <span>{uploadState.progress}%</span>
-                                                            </div>
-                                                        ) : (
-                                                            <>
-                                                                <UploadCloud size={14}/>
-                                                                <span>{grammarForm.coverImage ? "Change Cover" : "Upload Cover"}</span>
-                                                            </>
-                                                        )}
-                                                        <input type="file" accept="image/*" className="hidden" onChange={(e) => handleCoverImageUpload(e.target.files[0])} disabled={!!uploadState.target} />
-                                                    </label>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </section>
-
-                                    {grammarForm.sections.map((sec, idx) => (
-                                        <motion.div key={idx} initial={{opacity:0, y:20}} animate={{opacity:1, y:0}} className="bg-white dark:bg-zinc-900/10 border border-zinc-200 dark:border-zinc-800 rounded-2xl p-6 relative">
-                                                <div className="flex gap-4 mb-4 pb-4 border-b border-zinc-100 dark:border-zinc-800">
-                                                    <div className="flex-1"><InputLabel>Rule Title</InputLabel><ThemedInput value={sec.title} onChange={(e) => updateSection(idx, 'title', e.target.value)} /></div>
-                                                    <button type="button" onClick={() => removeGrammarSection(idx)} className="mt-6 p-2 text-zinc-400 hover:text-black dark:hover:text-white"><Trash2 size={18} /></button>
-                                                </div>
-                                                <div className="mb-6"><InputLabel>Explanation</InputLabel><ThemedTextarea value={sec.content} onChange={(e) => updateSection(idx, 'content', e.target.value)} /></div>
-
-                                                <div className="bg-zinc-50 dark:bg-zinc-900/50 p-5 rounded-xl border border-zinc-100 dark:border-zinc-800/50">
-                                                    <div className="flex justify-between items-center mb-3">
-                                                        <span className="text-xs font-bold text-zinc-500 uppercase flex items-center gap-1"><Lightbulb size={12}/> Examples</span>
-                                                        <button type="button" onClick={() => addExample(idx)} className="text-[10px] bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 px-2 py-1 rounded hover:bg-zinc-100 dark:hover:bg-zinc-700 hover:text-black dark:hover:text-white shadow-sm">+ Add</button>
-                                                    </div>
-                                                    <div className="space-y-3">
-                                                        {sec.examples.map((ex, exIdx) => (
-                                                            <div key={exIdx} className="flex gap-2 items-start">
-                                                                <div className="flex-1 grid gap-2">
-                                                                    <input className="w-full bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-700 rounded px-2 py-1.5 text-sm outline-none focus:border-zinc-500 focus:ring-1 focus:ring-zinc-500" placeholder="Sentence..." value={ex.sentence} onChange={(e) => updateExample(idx, exIdx, 'sentence', e.target.value)} />
-                                                                    <input className="w-full bg-transparent border-b border-dashed border-zinc-300 dark:border-zinc-700 px-2 py-1 text-xs text-zinc-500 outline-none" placeholder="Why is this correct? (Optional)" value={ex.explanation} onChange={(e) => updateExample(idx, exIdx, 'explanation', e.target.value)} />
-                                                                </div>
-                                                                <button type="button" onClick={() => removeExample(idx, exIdx)} className="p-1 text-zinc-400 hover:text-black dark:hover:text-white"><Trash2 size={14} /></button>
-                                                            </div>
-                                                        ))}
-                                                    </div>
-                                                </div>
-                                        </motion.div>
-                                    ))}
-                                    <button type="button" onClick={addGrammarSection} className="w-full py-4 border border-dashed border-zinc-300 rounded-xl text-zinc-500 text-sm hover:bg-zinc-50 hover:text-black transition-colors">+ Add New Rule</button>
-                                </motion.div>
-                            </AnimatePresence>
+                            <GrammarEditor
+                                form={grammarForm}
+                                setForm={setGrammarForm}
+                                uploadState={uploadState}
+                                setUploadState={setUploadState}
+                                showNotification={showNotification}
+                            />
                         )}
                     </form>
                 </div>
@@ -760,7 +243,7 @@ export default function AdminPanel() {
           </motion.div>
       )}
 
-      {/* Toast Notification (Monochrome) */}
+      {/* Toast Notification */}
       <AnimatePresence>
         {notification && (
           <motion.div
