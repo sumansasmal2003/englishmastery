@@ -1,10 +1,10 @@
 "use client";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   BookOpen, X, ChevronRight, Command, PenTool, ArrowRight, Search, FileText, Sparkles, GraduationCap,
-  Image as ImageIcon, Gamepad2, Trophy
+  Image as ImageIcon, Gamepad2, Trophy, Feather, Filter
 } from "lucide-react";
 
 // --- Animations ---
@@ -47,10 +47,14 @@ const SmoothImage = ({ src, alt, className }) => {
   );
 };
 
-export default function HomeDashboard({ chapters = [], grammar = [], classInfos = [] }) {
+export default function HomeDashboard({ chapters = [], grammar = [], writings = [], classInfos = [] }) {
   const [selectedClass, setSelectedClass] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
 
+  // New State for Writing Filter
+  const [writingFilter, setWritingFilter] = useState("ALL");
+
+  // --- Search Logic ---
   const filteredChapters = chapters.filter(c =>
     c.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
     c.author?.toLowerCase().includes(searchQuery.toLowerCase())
@@ -61,8 +65,25 @@ export default function HomeDashboard({ chapters = [], grammar = [], classInfos 
     g.description?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
+  const filteredWritings = writings.filter(w =>
+    w.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    w.question?.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
   const classChapters = chapters.filter((ch) => ch.classLevel === selectedClass);
   const isSearching = searchQuery.length > 0;
+
+  // --- Writing Category Logic ---
+  // Get unique types from the writings array
+  const writingTypes = useMemo(() => {
+      const types = new Set(writings.map(w => w.type));
+      return ["ALL", ...Array.from(types).sort()];
+  }, [writings]);
+
+  const displayedWritings = writingFilter === "ALL"
+      ? writings
+      : writings.filter(w => w.type === writingFilter);
+
 
   // Classes List
   const classes = [3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
@@ -103,13 +124,11 @@ export default function HomeDashboard({ chapters = [], grammar = [], classInfos 
           </div>
 
           <div className="flex items-center gap-3">
-            {/* NEW: Arcade Link */}
             <Link href="/arcade" className="flex items-center gap-2 px-3 py-1.5 text-xs font-bold bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 dark:bg-indigo-900/20 dark:hover:bg-indigo-900/40 dark:border-indigo-800 rounded text-indigo-600 dark:text-indigo-400 transition-all">
                 <Gamepad2 size={14} />
                 <span>Arcade</span>
             </Link>
 
-            {/* Admin Link */}
             <Link href="/add-chapter" className="flex items-center gap-2 px-3 py-1.5 text-xs font-medium bg-zinc-50 hover:bg-zinc-100 border border-zinc-200 dark:bg-[#111] dark:hover:bg-[#222] dark:border-zinc-800 rounded text-zinc-600 dark:text-zinc-400 transition-all">
                 <Command size={12} />
                 <span>Admin</span>
@@ -133,7 +152,7 @@ export default function HomeDashboard({ chapters = [], grammar = [], classInfos 
               <span className="text-transparent bg-clip-text bg-gradient-to-b from-zinc-800 to-zinc-400 dark:from-white dark:to-zinc-500">Written Word.</span>
             </h1>
             <p className="text-zinc-500 dark:text-zinc-400 text-lg max-w-md mx-auto leading-relaxed">
-              A comprehensive learning platform for literature analysis and grammar excellence.
+              A comprehensive learning platform for literature analysis, grammar excellence, and writing skills.
             </p>
           </motion.div>
 
@@ -148,7 +167,7 @@ export default function HomeDashboard({ chapters = [], grammar = [], classInfos 
             </div>
             <input
               type="text"
-              placeholder="Search chapters, authors, or grammar..."
+              placeholder="Search chapters, writings, or grammar..."
               className="w-full pl-12 pr-10 py-3 bg-zinc-50 dark:bg-[#111] border border-zinc-200 dark:border-zinc-800 rounded-lg shadow-sm focus:ring-1 focus:ring-white focus:border-white outline-none transition-all text-sm placeholder:text-zinc-500"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
@@ -164,7 +183,8 @@ export default function HomeDashboard({ chapters = [], grammar = [], classInfos 
         {/* --- CONTENT AREA --- */}
         {isSearching ? (
             <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-16">
-                {/* Search Results */}
+
+                {/* 1. Search Literature */}
                 <div className="space-y-6">
                     <div className="flex items-center gap-2 text-xs font-bold text-zinc-400 uppercase tracking-widest px-1">
                         <FileText size={12}/> Literature Results
@@ -185,6 +205,27 @@ export default function HomeDashboard({ chapters = [], grammar = [], classInfos 
                     ) : <div className="text-zinc-500 text-sm italic pl-1">No chapters found matching your query.</div>}
                 </div>
 
+                {/* 2. Search Writing */}
+                <div className="space-y-6">
+                    <div className="flex items-center gap-2 text-xs font-bold text-zinc-400 uppercase tracking-widest px-1">
+                        <Feather size={12}/> Writing Results
+                    </div>
+                    {filteredWritings.length > 0 ? (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                            {filteredWritings.map(w => (
+                                <Link key={w._id} href={`/writing/${w._id}`} className="group p-5 bg-white dark:bg-[#0a0a0a] border border-zinc-200 dark:border-zinc-800 rounded-lg hover:border-zinc-400 dark:hover:border-zinc-600 transition-all duration-200">
+                                    <div className="flex items-center gap-2 mb-3">
+                                        <span className="px-2 py-0.5 rounded-full bg-rose-50 dark:bg-rose-900/20 text-rose-600 dark:text-rose-400 text-[10px] font-bold uppercase tracking-wider">{w.type.replace(/_/g, ' ')}</span>
+                                    </div>
+                                    <h3 className="text-sm font-bold text-zinc-900 dark:text-zinc-100 mb-2 line-clamp-1">{w.title}</h3>
+                                    <p className="text-xs text-zinc-500 line-clamp-2 leading-relaxed">{w.question}</p>
+                                </Link>
+                            ))}
+                        </div>
+                    ) : <div className="text-zinc-500 text-sm italic pl-1">No writing tasks found.</div>}
+                </div>
+
+                {/* 3. Search Grammar */}
                 <div className="space-y-6">
                     <div className="flex items-center gap-2 text-xs font-bold text-zinc-400 uppercase tracking-widest px-1">
                         <PenTool size={12}/> Grammar Results
@@ -264,7 +305,59 @@ export default function HomeDashboard({ chapters = [], grammar = [], classInfos 
                     </motion.div>
                 </section>
 
-                {/* 2. GRAMMAR SECTION */}
+                {/* 2. WRITING STUDIO SECTION (NEW) */}
+                <section>
+                    <div className="flex flex-col md:flex-row md:items-end justify-between mb-6 px-1 border-b border-zinc-100 dark:border-zinc-900 pb-4 gap-4">
+                        <div className="flex items-center gap-3">
+                            <Feather className="text-zinc-800 dark:text-zinc-200" size={20} />
+                            <h2 className="text-xl font-bold text-zinc-900 dark:text-white">Writing Studio</h2>
+                        </div>
+
+                        {/* Type Filters */}
+                        <div className="flex flex-wrap gap-2">
+                            {writingTypes.map(type => (
+                                <button
+                                    key={type}
+                                    onClick={() => setWritingFilter(type)}
+                                    className={`px-3 py-1 text-[10px] font-bold rounded-full border transition-all ${
+                                        writingFilter === type
+                                            ? 'bg-zinc-900 dark:bg-white text-white dark:text-black border-zinc-900 dark:border-white'
+                                            : 'bg-white dark:bg-[#111] text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-300 border-zinc-200 dark:border-zinc-800'
+                                    }`}
+                                >
+                                    {type.replace(/_/g, ' ')}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {displayedWritings.length > 0 ? displayedWritings.map((item) => (
+                            <Link key={item._id} href={`/writing/${item._id}`} className="group relative bg-white dark:bg-[#0a0a0a] border border-zinc-200 dark:border-zinc-800 rounded-xl p-6 hover:border-rose-300 dark:hover:border-rose-900 transition-all duration-300 shadow-sm hover:shadow-md">
+                                <div className="absolute top-4 right-4">
+                                    <ArrowRight size={16} className="text-zinc-300 group-hover:text-rose-500 -translate-x-2 group-hover:translate-x-0 opacity-0 group-hover:opacity-100 transition-all"/>
+                                </div>
+                                <div className="mb-4">
+                                    <span className="inline-block px-2 py-1 rounded bg-rose-50 dark:bg-rose-900/10 text-rose-600 dark:text-rose-400 text-[9px] font-bold tracking-widest uppercase border border-rose-100 dark:border-rose-900/20">
+                                        {item.type.replace(/_/g, ' ')}
+                                    </span>
+                                </div>
+                                <h3 className="text-lg font-bold text-zinc-900 dark:text-zinc-100 mb-2 leading-tight group-hover:text-rose-600 dark:group-hover:text-rose-400 transition-colors">
+                                    {item.title}
+                                </h3>
+                                <p className="text-xs text-zinc-500 leading-relaxed line-clamp-2">
+                                    {item.question}
+                                </p>
+                            </Link>
+                        )) : (
+                            <div className="col-span-full py-12 text-center border border-dashed border-zinc-200 dark:border-zinc-800 rounded-xl">
+                                <p className="text-sm text-zinc-400">No writing tasks found for this filter.</p>
+                            </div>
+                        )}
+                    </div>
+                </section>
+
+                {/* 3. GRAMMAR SECTION */}
                 <section>
                     <div className="flex items-center gap-3 mb-6 px-1 border-b border-zinc-100 dark:border-zinc-900 pb-4">
                         <Sparkles className="text-zinc-800 dark:text-zinc-200" size={20} />
@@ -299,7 +392,7 @@ export default function HomeDashboard({ chapters = [], grammar = [], classInfos 
                     )}
                 </section>
 
-                {/* 3. PRACTICE ZONE (NEW SECTION) */}
+                {/* 4. PRACTICE ZONE */}
                 <section>
                     <div className="flex items-center gap-3 mb-6 px-1 border-b border-zinc-100 dark:border-zinc-900 pb-4">
                         <Trophy className="text-zinc-800 dark:text-zinc-200" size={20} />

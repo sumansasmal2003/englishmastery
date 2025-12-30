@@ -39,27 +39,41 @@ export async function POST(req) {
       const { gameType, difficulty = "Medium", lastWord, history } = body;
       const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash-lite" });
 
+      // --- NEW: Explicit Difficulty Constraints ---
+      const difficultyMap = {
+        "Easy": "Use simple, very common words suitable for a 3rd grader (Primary School).",
+        "Medium": "Use standard vocabulary suitable for a High School student.",
+        "Hard": "Use obscure, complex, or literary vocabulary (Advanced/SAT level)."
+      };
+
+      // Fallback to Medium if undefined
+      const diffConstraint = difficultyMap[difficulty] || difficultyMap["Medium"];
+
       let prompt = "";
 
       if (gameType === 'RIDDLE') {
         prompt = `
-          Generate a unique, witty riddle for a school student.
-          Difficulty: ${difficulty}.
-          Target Answer: A single common English noun (e.g., Candle, Shadow, Echo, Book).
+          Generate a unique, witty riddle.
+          Difficulty Level: ${difficulty}.
+          Constraint: ${diffConstraint}
+          Target Answer: A single English noun (e.g., Candle, Shadow, Echo).
 
           OUTPUT JSON FORMAT (No Markdown):
           {
-            "question": "The riddle text here...",
-            "answer": "The Answer",
-            "hint": "A subtle hint"
+            "question": "The riddle text in English...",
+            "questionBn": "The riddle text translated into Bengali...",
+            "answer": "The Answer in English",
+            "hint": "A subtle hint in English"
           }
         `;
       }
       else if (gameType === 'DETECTIVE') {
         prompt = `
           Generate a "Fill in the Missing Word" context puzzle.
-          Difficulty: ${difficulty}.
-          The missing word should be a slightly advanced vocabulary word (e.g., Reluctant, Vivid, Fragile).
+          Difficulty Level: ${difficulty}.
+          Constraint: ${diffConstraint}
+
+          The missing word should be a vocabulary word fitting the difficulty above.
 
           OUTPUT JSON FORMAT (No Markdown):
           {
@@ -73,16 +87,17 @@ export async function POST(req) {
         prompt = `
           You are playing Word Chain.
           User's word: "${lastWord}".
-          History: [${history.join(', ')}].
+          History: [${history ? history.join(', ') : ''}].
 
           TASK:
           1. STRICTLY VALIDATE "${lastWord}". Is it a real, standard English word found in a dictionary?
-             - "yzz", "abc", "hji" are NOT valid.
-             - Names like "Rahul" are NOT valid.
+             - "yzz", "abc" are NOT valid.
+             - Proper nouns (Names, Places) are NOT valid.
              - If INVALID: Return JSON with "userLost": true and "message": "That's not a real word!".
 
           2. IF VALID:
              - Generate a response word starting with the last letter of "${lastWord}".
+             - The response word MUST fit this complexity: ${diffConstraint}
              - It MUST NOT be in the history list.
              - If you cannot find a word, set "aiLost": true.
 

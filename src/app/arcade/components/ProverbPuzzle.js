@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ListOrdered, Loader2, CheckCircle2, X, Undo2, Quote } from "lucide-react";
+import { ListOrdered, Loader2, CheckCircle2, X, Undo2, Quote, ArrowRight } from "lucide-react";
 
 export default function ProverbPuzzle({ onClose }) {
     const FALLBACK_PROVERBS = ["Actions speak louder than words", "Better late than never", "Practice makes perfect"];
@@ -46,7 +46,7 @@ export default function ProverbPuzzle({ onClose }) {
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
-            <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="w-full max-w-xl bg-orange-50 dark:bg-[#1c1917] border border-orange-200 dark:border-orange-900 rounded-3xl shadow-2xl overflow-hidden">
+            <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="w-full max-w-xl bg-orange-50 dark:bg-[#1c1917] border border-orange-200 dark:border-orange-900 rounded-3xl shadow-2xl overflow-hidden relative">
                 <div className="p-4 flex justify-between items-center bg-orange-100 dark:bg-orange-900/20">
                     <div className="flex items-center gap-2 font-bold text-orange-700 dark:text-orange-500"><ListOrdered size={20}/> PROVERB PUZZLE</div>
                     <button onClick={onClose}><X className="text-zinc-400 hover:text-black dark:hover:text-white" /></button>
@@ -76,7 +76,9 @@ export default function ProverbPuzzle({ onClose }) {
                                 {isCorrect ? (
                                     <div className="text-center animate-in zoom-in duration-300">
                                         <div className="text-green-600 font-black text-2xl flex items-center justify-center gap-2 mb-4"><CheckCircle2 /> Perfect!</div>
-                                        <button onClick={fetchProverb} className="px-8 py-3 bg-orange-600 text-white rounded-full font-bold shadow-lg hover:scale-105 transition-transform">Next Quote</button>
+                                        <button onClick={fetchProverb} className="px-8 py-3 bg-orange-600 text-white rounded-full font-bold shadow-lg hover:scale-105 transition-transform flex items-center gap-2 mx-auto">
+                                            Next Quote <ArrowRight size={18} />
+                                        </button>
                                     </div>
                                 ) : (
                                     <div className="flex flex-wrap gap-3 justify-center">

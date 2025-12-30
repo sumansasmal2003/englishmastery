@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Layers, Loader2, Trophy, X } from "lucide-react";
+import { Layers, Loader2, Trophy, X, RefreshCcw } from "lucide-react";
 
 export default function EchoMatch({ onClose }) {
     const COMMON_SEEDS = ["happy", "sad", "fast", "slow", "big", "small", "hot", "cold", "start", "end", "smart", "hard"];
@@ -14,7 +14,7 @@ export default function EchoMatch({ onClose }) {
     useEffect(() => { fetchGamePairs(); }, []);
 
     const fetchGamePairs = async () => {
-        setLoading(true);
+        setLoading(true); setSolved([]); setFlipped([]); setMoves(0);
         try {
             const candidates = [...COMMON_SEEDS].sort(() => 0.5 - Math.random()).slice(0, 8);
             const pairPromises = candidates.map(async (word) => {
@@ -69,7 +69,7 @@ export default function EchoMatch({ onClose }) {
                             <Trophy size={60} className="text-pink-500 animate-bounce mx-auto" />
                             <h2 className="text-3xl font-bold text-white">Memory Master!</h2>
                             <p className="text-zinc-400">Solved in {moves} moves</p>
-                            <button onClick={onClose} className="px-8 py-3 bg-pink-600 text-white rounded-full font-bold">Close</button>
+                            <button onClick={fetchGamePairs} className="px-8 py-3 bg-pink-600 text-white rounded-full font-bold flex items-center gap-2 mx-auto"><RefreshCcw size={18}/> Play Again</button>
                         </div>
                     ) : (
                         <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
@@ -78,11 +78,9 @@ export default function EchoMatch({ onClose }) {
                                 return (
                                     <div key={card.id} onClick={() => handleCardClick(i)} className="aspect-[3/4] sm:aspect-square cursor-pointer perspective-1000 group">
                                         <div className={`relative w-full h-full duration-500 transform-style-3d transition-transform ${isFlipped ? 'rotate-y-180' : ''}`}>
-                                            {/* Front (Hidden) */}
                                             <div className="absolute inset-0 backface-hidden bg-zinc-800 rounded-xl border-2 border-zinc-700 flex items-center justify-center group-hover:border-pink-500/50 transition-colors">
                                                 <Layers className="text-zinc-700 w-8 h-8" />
                                             </div>
-                                            {/* Back (Revealed) */}
                                             <div className="absolute inset-0 backface-hidden rotate-y-180 bg-pink-600 rounded-xl flex items-center justify-center p-2 text-center shadow-lg border-2 border-pink-400">
                                                 <span className="text-xs sm:text-sm font-bold text-white uppercase break-words">{card.text}</span>
                                             </div>

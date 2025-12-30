@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react";
 import {
   BookOpen, PenTool, FilePlus, ArrowLeft, Loader2, Save, LogOut,
-  AlertCircle, CheckCircle2, LayoutGrid, Edit3, FileText
+  AlertCircle, CheckCircle2, LayoutGrid, Edit3, FileText, Feather
 } from "lucide-react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
@@ -12,6 +12,7 @@ import TestGenerator from "./components/TestGenerator";
 import { SidebarSkeleton } from "./components/SharedUI";
 import ChapterEditor from "@/components/admin/ChapterEditor";
 import GrammarEditor from "@/components/admin/GrammarEditor";
+import WritingManager from "@/components/admin/WritingManager"; // Import the new manager
 import ClassManager from "@/components/admin/ClassManager";
 
 export default function AdminPanel() {
@@ -50,8 +51,10 @@ export default function AdminPanel() {
   const [chapterForm, setChapterForm] = useState(initialChapterState);
   const [grammarForm, setGrammarForm] = useState(initialGrammarState);
 
-  // Fetch Data on Tab Change
-  useEffect(() => { fetchData(); }, [activeTab]);
+  // Fetch Data on Tab Change (Only for Chapter/Grammar/Class)
+  useEffect(() => {
+      if(activeTab !== 'writing') fetchData();
+  }, [activeTab]);
 
   async function fetchData() {
     setFetching(true);
@@ -59,7 +62,8 @@ export default function AdminPanel() {
         let endpoint = "";
         if (activeTab === "chapter") endpoint = "/api/chapters";
         else if (activeTab === "grammar") endpoint = "/api/grammar";
-        else endpoint = "/api/classes";
+        else if (activeTab === "classes") endpoint = "/api/classes";
+        else return; // Writing handles its own fetching
 
         const res = await fetch(endpoint);
         const data = await res.json();
@@ -142,6 +146,7 @@ export default function AdminPanel() {
             <div className="flex items-center bg-zinc-100 dark:bg-zinc-900 p-1 rounded-lg border border-zinc-200 dark:border-zinc-800">
                 <button onClick={() => { setActiveTab("chapter"); resetForm(); }} className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-xs font-bold transition-all ${activeTab === "chapter" ? 'bg-white dark:bg-zinc-800 shadow-sm text-zinc-900 dark:text-white' : 'text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-300'}`}><BookOpen size={14} /> Literature</button>
                 <button onClick={() => { setActiveTab("grammar"); resetForm(); }} className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-xs font-bold transition-all ${activeTab === "grammar" ? 'bg-white dark:bg-zinc-800 shadow-sm text-zinc-900 dark:text-white' : 'text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-300'}`}><PenTool size={14} /> Grammar</button>
+                <button onClick={() => { setActiveTab("writing"); }} className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-xs font-bold transition-all ${activeTab === "writing" ? 'bg-white dark:bg-zinc-800 shadow-sm text-zinc-900 dark:text-white' : 'text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-300'}`}><Feather size={14} /> Writing</button>
                 <button onClick={() => { setActiveTab("classes"); }} className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-xs font-bold transition-all ${activeTab === "classes" ? 'bg-white dark:bg-zinc-800 shadow-sm text-zinc-900 dark:text-white' : 'text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-300'}`}><LayoutGrid size={14} /> Classes</button>
             </div>
           </div>
@@ -150,7 +155,7 @@ export default function AdminPanel() {
                 <FileText size={14} /><span>Test Mode</span>
             </button>
 
-            {activeTab !== 'classes' && (
+            {activeTab !== 'classes' && activeTab !== 'writing' && (
                 <button onClick={resetForm} className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-bold transition-all ${!editingId ? 'bg-zinc-900 dark:bg-zinc-100 text-white dark:text-black' : 'bg-zinc-100 dark:bg-zinc-900 text-zinc-500 hover:text-black dark:hover:text-white'}`}><FilePlus size={14} /><span>New {activeTab === "chapter" ? "Chapter" : "Topic"}</span></button>
             )}
 
@@ -170,8 +175,10 @@ export default function AdminPanel() {
                 setUploadState={setUploadState}
                 showNotification={showNotification}
              />
+        ) : activeTab === 'writing' ? (
+            <WritingManager showNotification={showNotification} />
         ) : (
-            /* --- EDITORS VIEW --- */
+            /* --- CHAPTER & GRAMMAR EDITORS VIEW --- */
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
                 {/* Sidebar */}
                 <div className="lg:col-span-4 lg:sticky lg:top-24">
@@ -230,7 +237,7 @@ export default function AdminPanel() {
       </main>
 
       {/* Floating Save Bar - ONLY SHOW FOR CHAPTER/GRAMMAR */}
-      {activeTab !== 'classes' && (
+      {activeTab !== 'classes' && activeTab !== 'writing' && (
           <motion.div initial={{y:100}} animate={{y:0}} className="fixed bottom-6 inset-x-0 z-50 flex justify-center px-4 pointer-events-none">
             <div className="bg-white/90 dark:bg-zinc-900/90 backdrop-blur-md border border-zinc-200 dark:border-zinc-800 p-2 pl-6 rounded-full shadow-2xl flex items-center gap-4 pointer-events-auto">
                 <span className="text-xs text-zinc-500 font-medium hidden sm:inline">{editingId ? "Updating Content..." : "Creating New Content..."}</span>

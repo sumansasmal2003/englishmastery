@@ -116,6 +116,72 @@ export default function WritingBuilder({ unitIdx, wIdx, writing, onChange, onRem
                 <button type="button" onClick={onRemove} className="text-rose-400 hover:text-rose-600 p-1 rounded"><Trash2 size={14} /></button>
             </div>
 
+            {writing.type === 'NOTICE' && (
+                <div className="mb-6 space-y-4 border-l-2 border-amber-200 pl-4">
+                    <div className="bg-white dark:bg-zinc-900/50 p-4 rounded-lg border border-amber-100 dark:border-amber-900/20">
+                        <h4 className="text-[10px] font-bold text-amber-600 dark:text-amber-500 uppercase tracking-widest mb-3 flex items-center gap-1">
+                            <PenLine size={12}/> Notice Header Details
+                        </h4>
+
+                        {/* Top: Organization & Date */}
+                        <div className="grid md:grid-cols-2 gap-4 mb-4">
+                            <div>
+                                <InputLabel>Issuing Organization / School</InputLabel>
+                                <ThemedInput
+                                    value={writing.data?.senderAddress || ""} // Reusing senderAddress field for Org Name
+                                    onChange={(e) => updateData('senderAddress', e.target.value)}
+                                    placeholder="e.g. ABC High School, Kolkata"
+                                    className="font-bold text-center"
+                                />
+                            </div>
+                            <div>
+                                <InputLabel icon={Calendar}>Date of Issue</InputLabel>
+                                <ThemedInput
+                                    value={writing.data?.date || ""}
+                                    onChange={(e) => updateData('date', e.target.value)}
+                                    placeholder="e.g. 20th May, 2024"
+                                />
+                            </div>
+                        </div>
+
+                        {/* Middle: Subject/Heading */}
+                        <div className="mb-4">
+                            <InputLabel>Notice Headline / Subject</InputLabel>
+                            <ThemedInput
+                                value={writing.data?.subject || ""}
+                                onChange={(e) => updateData('subject', e.target.value)}
+                                placeholder="e.g. INTER-SCHOOL DEBATE COMPETITION"
+                                className="uppercase font-bold text-center tracking-wide"
+                            />
+                        </div>
+
+                        {/* Bottom: Signatory Details */}
+                        <div className="grid md:grid-cols-2 gap-4 border-t border-dashed border-amber-200 dark:border-amber-800 pt-4 mt-4">
+                            <div>
+                                <InputLabel>Signatory Name</InputLabel>
+                                <ThemedInput
+                                    value={writing.data?.senderName || ""}
+                                    onChange={(e) => updateData('senderName', e.target.value)}
+                                    placeholder="e.g. Rahul Roy"
+                                />
+                            </div>
+                            <div>
+                                <InputLabel>Designation</InputLabel>
+                                <ThemedInput
+                                    value={writing.data?.salutation || ""} // Reusing salutation for Designation
+                                    onChange={(e) => updateData('salutation', e.target.value)}
+                                    placeholder="e.g. Cultural Secretary"
+                                />
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="p-3 bg-amber-50 dark:bg-amber-900/20 rounded border border-amber-100 dark:border-amber-800 text-center text-xs text-amber-600 dark:text-amber-400 font-medium">
+                        The content of the Notice goes in the "Model Answer (Body)" box below.
+                    </div>
+                </div>
+            )}
+
             {writing.type === 'SUMMARY' && (
                 <div className="mb-6 space-y-4 border-l-2 border-rose-200 pl-4">
                      <div className="bg-white dark:bg-zinc-900/50 p-4 rounded-lg border border-rose-100 dark:border-rose-900/20">
