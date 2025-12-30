@@ -310,29 +310,20 @@ export default function HomeDashboard({ chapters = [], grammar = [], writings = 
                     <div className="flex flex-col md:flex-row md:items-end justify-between mb-6 px-1 border-b border-zinc-100 dark:border-zinc-900 pb-4 gap-4">
                         <div className="flex items-center gap-3">
                             <Feather className="text-zinc-800 dark:text-zinc-200" size={20} />
-                            <h2 className="text-xl font-bold text-zinc-900 dark:text-white">Writing Studio</h2>
+                            <div>
+                                <h2 className="text-xl font-bold text-zinc-900 dark:text-white">Writing Studio</h2>
+                                <p className="text-xs text-zinc-500 font-medium mt-1">Latest assignments and tasks</p>
+                            </div>
                         </div>
 
-                        {/* Type Filters */}
-                        <div className="flex flex-wrap gap-2">
-                            {writingTypes.map(type => (
-                                <button
-                                    key={type}
-                                    onClick={() => setWritingFilter(type)}
-                                    className={`px-3 py-1 text-[10px] font-bold rounded-full border transition-all ${
-                                        writingFilter === type
-                                            ? 'bg-zinc-900 dark:bg-white text-white dark:text-black border-zinc-900 dark:border-white'
-                                            : 'bg-white dark:bg-[#111] text-zinc-500 hover:text-zinc-900 dark:hover:text-zinc-300 border-zinc-200 dark:border-zinc-800'
-                                    }`}
-                                >
-                                    {type.replace(/_/g, ' ')}
-                                </button>
-                            ))}
-                        </div>
+                        {/* Link to Full Library */}
+                        <Link href="/writings" className="flex items-center gap-2 text-sm font-bold text-indigo-600 dark:text-indigo-400 hover:gap-3 transition-all">
+                            View Full Library <ArrowRight size={16} />
+                        </Link>
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                        {displayedWritings.length > 0 ? displayedWritings.map((item) => (
+                        {writings.length > 0 ? writings.map((item) => (
                             <Link key={item._id} href={`/writing/${item._id}`} className="group relative bg-white dark:bg-[#0a0a0a] border border-zinc-200 dark:border-zinc-800 rounded-xl p-6 hover:border-rose-300 dark:hover:border-rose-900 transition-all duration-300 shadow-sm hover:shadow-md">
                                 <div className="absolute top-4 right-4">
                                     <ArrowRight size={16} className="text-zinc-300 group-hover:text-rose-500 -translate-x-2 group-hover:translate-x-0 opacity-0 group-hover:opacity-100 transition-all"/>
@@ -351,7 +342,7 @@ export default function HomeDashboard({ chapters = [], grammar = [], writings = 
                             </Link>
                         )) : (
                             <div className="col-span-full py-12 text-center border border-dashed border-zinc-200 dark:border-zinc-800 rounded-xl">
-                                <p className="text-sm text-zinc-400">No writing tasks found for this filter.</p>
+                                <p className="text-sm text-zinc-400">No writing tasks available.</p>
                             </div>
                         )}
                     </div>
