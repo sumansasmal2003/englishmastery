@@ -6,6 +6,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import ClientWritingViewer from "./ClientWritingViewer"; // We'll make this client component
+import RelatedContent from "@/components/RelatedContent";
 
 export const dynamic = 'force-dynamic';
 
@@ -24,6 +25,21 @@ export default async function WritingDetailPage({ params }) {
       </div>
     );
   }
+
+  const relatedDocs = await Writing.find({
+      type: writing.type,
+      _id: { $ne: id } // Exclude current
+  })
+  .select('title question type')
+  .limit(3)
+  .lean();
+
+  const relatedItems = relatedDocs.map(doc => ({
+      title: doc.title,
+      subtitle: doc.question,
+      category: doc.type.replace(/_/g, ' '),
+      href: `/writing/${doc._id.toString()}`
+  }));
 
   // Serialize ID
   const serializedWriting = { ...writing, _id: writing._id.toString() };
@@ -58,6 +74,13 @@ export default async function WritingDetailPage({ params }) {
 
         {/* Client Viewer for Interactivity (Toggle Answers) */}
         <ClientWritingViewer writing={serializedWriting} />
+
+        <div className="mt-16">
+            <RelatedContent
+                title={`More ${writing.type.replace(/_/g, ' ').toLowerCase()}s`}
+                items={relatedItems}
+            />
+        </div>
 
       </main>
     </div>

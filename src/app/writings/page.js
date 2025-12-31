@@ -71,7 +71,7 @@ export default async function WritingsLibrary({ searchParams }) {
   };
 
   return (
-    <div className="min-h-screen bg-zinc-50 dark:bg-black text-zinc-900 dark:text-zinc-200 font-sans selection:bg-indigo-100 dark:selection:bg-indigo-900/30 pb-20 relative overflow-x-hidden">
+    <div className="min-h-screen bg-zinc-50 dark:bg-black text-zinc-900 dark:text-zinc-200 font-sans selection:bg-indigo-100 dark:selection:bg-indigo-900/30 pb-20 relative">
 
       {/* --- BACKGROUND DESIGN SYSTEM --- */}
       <div className="fixed inset-0 z-0 pointer-events-none">
@@ -106,59 +106,66 @@ export default async function WritingsLibrary({ searchParams }) {
         </div>
       </header>
 
-      <main className="relative z-30 max-w-7xl mx-auto px-6 pt-28">
+      {/* Main Content - FIXED: Added min-h-screen to create scrolling context */}
+      <main className="relative z-30 max-w-7xl mx-auto px-6 pt-28 min-h-screen">
+        {/* Changed: Added h-full to parent container */}
+        <div className="h-full flex flex-col md:flex-row gap-8">
 
-        <div className="flex flex-col md:flex-row gap-8 items-start">
+          {/* --- SIDEBAR FILTERS (STICKY) - FIXED: Completely separate sticky container --- */}
+          <div className="md:w-64 flex-shrink-0">
+            <div className="md:sticky md:top-28"> {/* Fixed: Direct sticky wrapper */}
+              <aside className="w-full space-y-8 max-h-[calc(100vh-12rem)] overflow-y-auto pr-2 pb-6">
+                {/* Search */}
+                <div className="space-y-3">
+                  <label className="text-xs font-bold text-zinc-400 uppercase tracking-widest px-1">Search</label>
+                  <form action="/writings" method="GET" className="relative group">
+                      <Search className="absolute left-3 top-3 text-zinc-400 group-focus-within:text-indigo-500 transition-colors" size={16}/>
+                      <input
+                          name="q"
+                          defaultValue={query}
+                          placeholder="Search topics..."
+                          className="w-full pl-10 pr-4 py-2.5 bg-white dark:bg-[#111] border border-zinc-200 dark:border-zinc-800 rounded-lg text-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none transition-all shadow-sm"
+                      />
+                      {/* Preserve type when searching */}
+                      <input type="hidden" name="type" value={type} />
 
-          {/* --- SIDEBAR FILTERS (STICKY) --- */}
-          {/* Added: md:sticky, md:top-24, max-h, overflow-y-auto */}
-          <aside className="w-full md:w-64 flex-shrink-0 space-y-8 md:sticky md:top-24 max-h-[calc(100vh-8rem)] overflow-y-auto custom-scrollbar pr-2">
-             {/* Search */}
-             <div className="space-y-3">
-                <label className="text-xs font-bold text-zinc-400 uppercase tracking-widest px-1">Search</label>
-                <form action="/writings" method="GET" className="relative group">
-                    <Search className="absolute left-3 top-3 text-zinc-400 group-focus-within:text-indigo-500 transition-colors" size={16}/>
-                    <input
-                        name="q"
-                        defaultValue={query}
-                        placeholder="Search topics..."
-                        className="w-full pl-10 pr-4 py-2.5 bg-white dark:bg-[#111] border border-zinc-200 dark:border-zinc-800 rounded-lg text-sm focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 outline-none transition-all shadow-sm"
-                    />
-                    {/* Preserve type when searching */}
-                    <input type="hidden" name="type" value={type} />
-
-                    {query && (
-                         <Link href={`/writings?type=${type}`} className="absolute right-3 top-3 text-zinc-400 hover:text-zinc-900 dark:hover:text-white">
-                             <X size={16} />
-                         </Link>
-                    )}
-                </form>
-             </div>
-
-             {/* Categories */}
-             <div className="space-y-3">
-                <label className="text-xs font-bold text-zinc-400 uppercase tracking-widest px-1">Filter by Type</label>
-                <div className="flex flex-col gap-1">
-                    {writingTypes.map(t => (
-                        <Link
-                            key={t}
-                            href={`/writings?type=${t}${query ? `&q=${query}` : ''}`}
-                            className={`px-3 py-2 text-xs font-bold rounded-lg transition-all text-left flex justify-between items-center ${
-                                type === t
-                                ? 'bg-indigo-600 text-white shadow-md shadow-indigo-500/20'
-                                : 'text-zinc-500 hover:bg-zinc-200 dark:hover:bg-zinc-800 hover:text-black dark:hover:text-white'
-                            }`}
-                        >
-                            {t.replace(/_/g, ' ')}
-                            {type === t && <Filter size={12}/>}
-                        </Link>
-                    ))}
+                      {query && (
+                           <Link
+                             href={`/writings?type=${type}`}
+                             className="absolute right-3 top-3 text-zinc-400 hover:text-zinc-900 dark:hover:text-white transition-colors"
+                           >
+                               <X size={16} />
+                           </Link>
+                      )}
+                  </form>
                 </div>
-             </div>
-          </aside>
 
-          {/* --- MAIN GRID --- */}
-          <div className="flex-1 w-full">
+                {/* Categories */}
+                <div className="space-y-3">
+                  <label className="text-xs font-bold text-zinc-400 uppercase tracking-widest px-1">Filter by Type</label>
+                  <div className="flex flex-col gap-1">
+                      {writingTypes.map(t => (
+                          <Link
+                              key={t}
+                              href={`/writings?type=${t}${query ? `&q=${query}` : ''}`}
+                              className={`px-3 py-2 text-xs font-bold rounded-lg transition-all text-left flex justify-between items-center ${
+                                  type === t
+                                  ? 'bg-indigo-600 text-white shadow-md shadow-indigo-500/20'
+                                  : 'text-zinc-500 hover:bg-zinc-200 dark:hover:bg-zinc-800 hover:text-black dark:hover:text-white'
+                              }`}
+                          >
+                              {t.replace(/_/g, ' ')}
+                              {type === t && <Filter size={12}/>}
+                          </Link>
+                      ))}
+                  </div>
+                </div>
+              </aside>
+            </div>
+          </div>
+
+          {/* --- MAIN CONTENT AREA (Scrollable) --- */}
+          <div className="flex-1 min-w-0"> {/* Changed: Added min-w-0 for proper flex behavior */}
 
              {/* Title Bar */}
              <div className="mb-6 pb-4 border-b border-zinc-200 dark:border-zinc-800 flex flex-col sm:flex-row sm:items-end justify-between gap-2">
@@ -232,7 +239,7 @@ export default async function WritingsLibrary({ searchParams }) {
 
              {/* PAGINATION CONTROLS */}
              {totalPages > 1 && (
-                 <div className="flex justify-center items-center gap-3">
+                 <div className="flex justify-center items-center gap-3 pb-8">
                      {page > 1 ? (
                          <Link
                             href={getPageLink(page - 1)}

@@ -8,7 +8,7 @@ import { motion, AnimatePresence } from "framer-motion";
 export default function ClientWritingViewer({ writing }) {
 
   // --- Dictionary State ---
-  const [selection, setSelection] = useState(null); // { word: "Apple", meaning: "...", loading: false }
+  const [selection, setSelection] = useState(null);
 
   // --- 1. SMART WORD DETECTION (Click/Tap) ---
   const handleSmartClick = async (e) => {
@@ -45,16 +45,14 @@ export default function ClientWritingViewer({ writing }) {
   // Helper: Expand a single point in a text node to the full word
   const expandToWord = (textNode, offset) => {
     const text = textNode.textContent;
-    const isWordChar = (char) => /^[a-zA-Z0-9'-]+$/.test(char); // Allow letters, numbers, apostrophes, hyphens
+    const isWordChar = (char) => /^[a-zA-Z0-9'-]+$/.test(char);
 
     let start = offset;
     let end = offset;
 
-    // Expand left
     while (start > 0 && isWordChar(text[start - 1])) {
       start--;
     }
-    // Expand right
     while (end < text.length && isWordChar(text[end])) {
       end++;
     }
@@ -64,11 +62,9 @@ export default function ClientWritingViewer({ writing }) {
 
   // --- 2. API FETCHING ---
   const fetchMeaning = async (text) => {
-    // Filter out punctuation or empty clicks
     const cleanText = text.replace(/[^a-zA-Z0-9\s'-]/g, '').trim();
     if (!cleanText || cleanText.length < 2) return;
 
-    // Avoid refetching same word
     if (selection?.word.toLowerCase() === cleanText.toLowerCase()) return;
 
     setSelection({ word: cleanText, meaning: null, loading: true });
@@ -97,7 +93,7 @@ export default function ClientWritingViewer({ writing }) {
     setSelection(null);
   };
 
-  // --- Family Tree Logic (Kept Same) ---
+  // --- Family Tree Logic ---
   const renderTree = (parentId, members) => {
       const children = members.filter(m => m.parentId === parentId && m.parentId !== 'spouse');
       if (children.length === 0 && parentId === null) return null;
@@ -149,7 +145,6 @@ export default function ClientWritingViewer({ writing }) {
         {/* 1. Question Card */}
         <section className="space-y-6">
             <div
-                // Add click handler for tap-to-translate
                 onClick={handleSmartClick}
                 className="bg-white dark:bg-[#111] border border-zinc-200 dark:border-zinc-800 rounded-2xl p-8 shadow-sm relative overflow-hidden cursor-pointer"
             >
@@ -168,7 +163,6 @@ export default function ClientWritingViewer({ writing }) {
             {/* 2. Context / Hints / Charts */}
             {(writing.data?.hints?.length > 0 || writing.data?.familyMembers?.length > 0 || writing.data?.passage) && (
                 <div className="space-y-6">
-
                     {/* Hints */}
                     {writing.data.hints?.length > 0 && (
                         <div className="bg-amber-50 dark:bg-amber-900/10 border border-amber-100 dark:border-amber-900/20 rounded-xl p-6">
@@ -184,7 +178,6 @@ export default function ClientWritingViewer({ writing }) {
                             </div>
                         </div>
                     )}
-
                     {/* Family Chart */}
                     {writing.type === 'FAMILY_CHART' && writing.data.familyMembers && (
                         <div className="bg-zinc-100 dark:bg-zinc-900 rounded-xl p-8 border border-zinc-200 dark:border-zinc-800 overflow-x-auto">
@@ -193,14 +186,12 @@ export default function ClientWritingViewer({ writing }) {
                             </div>
                         </div>
                     )}
-
                     {/* Summary Passage */}
                     {writing.type === 'SUMMARY' && writing.data.passage && (
                         <div onClick={handleSmartClick} className="cursor-pointer bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl p-8 font-serif text-lg leading-relaxed text-zinc-800 dark:text-zinc-300 selection:bg-rose-200 dark:selection:bg-rose-900">
                             {writing.data.passage}
                         </div>
                     )}
-
                     {/* Dialogue Context */}
                     {writing.type === 'DIALOGUE' && (
                         <div className="flex flex-wrap gap-4">
@@ -229,9 +220,9 @@ export default function ClientWritingViewer({ writing }) {
             <div className="h-px bg-zinc-200 dark:bg-zinc-800 flex-1"></div>
         </div>
 
-        {/* 4. Model Answer Area (Always Visible + Tap Enabled) */}
+        {/* 4. Model Answer Area */}
         <div className="space-y-6" onClick={handleSmartClick}>
-            {/* NOTICE WRITING FORMAT */}
+            {/* --- NOTICE WRITING --- */}
             {writing.type === 'NOTICE' ? (
                 <div className="bg-white dark:bg-[#151515] border border-zinc-300 dark:border-zinc-700 p-8 md:p-12 shadow-2xl max-w-2xl mx-auto transform transition-all hover:scale-[1.01] cursor-pointer">
                     <div className="text-center space-y-2 mb-8">
@@ -257,9 +248,10 @@ export default function ClientWritingViewer({ writing }) {
                     </div>
                 </div>
             ) : (
-                /* STANDARD / LETTER FORMAT */
+                /* --- STANDARD / LETTER FORMAT --- */
                 <div className="bg-white dark:bg-[#151515] border border-zinc-200 dark:border-zinc-800 p-8 md:p-12 rounded-2xl shadow-xl font-serif text-lg leading-loose text-zinc-800 dark:text-zinc-200 cursor-pointer">
-                    {/* Formal Letter Header */}
+
+                    {/* FORMAL LETTER HEADER */}
                     {writing.type === 'FORMAL_LETTER' && (
                         <div className="space-y-6 mb-8 text-base font-sans text-zinc-600 dark:text-zinc-400">
                             <div className="whitespace-pre-wrap selection:bg-rose-200 dark:selection:bg-rose-900">
@@ -275,11 +267,26 @@ export default function ClientWritingViewer({ writing }) {
                         </div>
                     )}
 
-                    {/* Informal Letter Header */}
+                    {/* INFORMAL LETTER HEADER (FIXED) */}
                     {writing.type === 'INFORMAL_LETTER' && (
-                        <div className="flex flex-col items-end text-right mb-8 text-base font-sans text-zinc-600 dark:text-zinc-400">
-                            <div className="whitespace-pre-wrap mb-1 selection:bg-rose-200 dark:selection:bg-rose-900">{writing.data?.senderAddress}</div>
-                            <div className="font-bold selection:bg-rose-200 dark:selection:bg-rose-900">{writing.data?.date}</div>
+                        <div className="mb-8 font-sans text-zinc-600 dark:text-zinc-400">
+                            {/* Top Right: Sender Address & Date */}
+                            <div className="flex flex-col items-end text-right mb-8">
+                                <div className="whitespace-pre-wrap mb-1 selection:bg-rose-200 dark:selection:bg-rose-900">{writing.data?.senderAddress}</div>
+                                <div className="font-bold selection:bg-rose-200 dark:selection:bg-rose-900">{writing.data?.date}</div>
+                            </div>
+
+                            {/* Optional Subject */}
+                            {writing.data?.subject && (
+                                <div className="mb-4 font-bold text-zinc-900 dark:text-white underline">
+                                    Subject: {writing.data.subject}
+                                </div>
+                            )}
+
+                            {/* Salutation */}
+                            <div className="font-bold text-zinc-900 dark:text-white text-lg">
+                                {writing.data?.salutation}
+                            </div>
                         </div>
                     )}
 
@@ -293,11 +300,22 @@ export default function ClientWritingViewer({ writing }) {
                         <div className={`flex flex-col ${writing.type === 'FORMAL_LETTER' ? 'items-start text-left' : 'items-end text-right'} pt-8`}>
                             <p className="italic mb-2 selection:bg-rose-200 dark:selection:bg-rose-900">{writing.data?.closing || "Yours,"}</p>
                             <p className="font-bold text-xl not-italic selection:bg-rose-200 dark:selection:bg-rose-900">{writing.data?.senderName}</p>
+
                             {/* Formal Letter Date at bottom left sometimes */}
                             {writing.type === 'FORMAL_LETTER' && (
                                 <div className="mt-8 pt-4 border-t border-zinc-200 dark:border-zinc-800 w-full text-sm font-sans text-zinc-500 selection:bg-rose-200 dark:selection:bg-rose-900">
                                     Date: {writing.data?.date} <br/>
                                     Place: {writing.data?.senderAddress}
+                                </div>
+                            )}
+
+                            {/* INFORMAL LETTER: Recipient Address at Bottom Left (FIXED) */}
+                            {writing.type === 'INFORMAL_LETTER' && writing.data?.receiverAddress && (
+                                <div className="mt-8 pt-4 border-t border-zinc-200 dark:border-zinc-800 w-full text-left text-sm font-sans text-zinc-500">
+                                    <span className="font-bold block mb-1">To:</span>
+                                    <div className="whitespace-pre-wrap selection:bg-rose-200 dark:selection:bg-rose-900">
+                                        {writing.data.receiverAddress}
+                                    </div>
                                 </div>
                             )}
                         </div>
@@ -306,11 +324,10 @@ export default function ClientWritingViewer({ writing }) {
             )}
         </div>
 
-        {/* --- FLOATING DICTIONARY CARD (Mobile Bottom Sheet + Desktop Float) --- */}
+        {/* --- FLOATING DICTIONARY CARD --- */}
         <AnimatePresence>
             {selection && (
                 <>
-                {/* Backdrop for mobile focus */}
                 <motion.div
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 0.5 }}
@@ -318,10 +335,7 @@ export default function ClientWritingViewer({ writing }) {
                     onClick={closeDictionary}
                     className="fixed inset-0 bg-black z-[60] md:hidden"
                 />
-
                 <motion.div
-                    // Mobile: Slide up from bottom, Full Width
-                    // Desktop: Fade in, Bottom Right, Card
                     initial={{ y: "100%", opacity: 0 }}
                     animate={{ y: 0, opacity: 1 }}
                     exit={{ y: "100%", opacity: 0 }}
@@ -335,7 +349,6 @@ export default function ClientWritingViewer({ writing }) {
                         overflow-hidden
                     "
                 >
-                    {/* Header */}
                     <div className="bg-indigo-600 px-4 py-3 flex justify-between items-center text-white">
                         <div className="flex items-center gap-2 font-bold text-sm">
                             <Book size={16} /> Dictionary
@@ -344,8 +357,6 @@ export default function ClientWritingViewer({ writing }) {
                             <X size={18} />
                         </button>
                     </div>
-
-                    {/* Content */}
                     <div className="p-6">
                         <div className="mb-2">
                             <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Selected Word</span>
@@ -353,9 +364,7 @@ export default function ClientWritingViewer({ writing }) {
                                 {selection.word}
                             </p>
                         </div>
-
                         <div className="h-px bg-zinc-100 dark:bg-zinc-800 my-4"></div>
-
                         <div>
                             <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">Bengali Meaning</span>
                             {selection.loading ? (
@@ -377,7 +386,6 @@ export default function ClientWritingViewer({ writing }) {
                 </>
             )}
         </AnimatePresence>
-
     </div>
   );
 }

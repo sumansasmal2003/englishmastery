@@ -23,6 +23,7 @@ import {
   UserCircle2
 } from "lucide-react";
 import ChapterChatbot from "@/components/ChapterChatbot";
+import RelatedContent from "@/components/RelatedContent";
 
 // --- Animation Variants ---
 const containerVariants = {
@@ -84,6 +85,7 @@ export default function ChapterDetail() {
   const [grammarList, setGrammarList] = useState([]);
   const [loading, setLoading] = useState(true);
   const [downloading, setDownloading] = useState(false);
+  const [relatedContent, setRelatedContent] = useState([]);
 
   // Toggle States
   const [revealedAnswers, setRevealedAnswers] = useState({});
@@ -103,18 +105,32 @@ export default function ChapterDetail() {
     async function fetchData() {
       try {
         setLoading(true);
-        const [chapterRes, grammarRes] = await Promise.all([
+        const [chapterRes, grammarRes, allChaptersRes] = await Promise.all([
             fetch(`/api/chapters/${id}`),
-            fetch('/api/grammar')
+            fetch('/api/grammar'),
+            fetch('/api/chapters')
         ]);
 
         const chapterData = await chapterRes.json();
         const grammarData = await grammarRes.json();
+        const allChaptersData = await allChaptersRes.json();
 
         if (chapterData.success) {
             const data = chapterData.data;
             setChapter(data);
             generateFlashcards(data);
+            if (allChaptersData.success) {
+                const others = allChaptersData.data
+                    .filter(c => c.classLevel === data.classLevel && c._id !== data._id)
+                    .slice(0, 3) // Take top 3
+                    .map(c => ({
+                        title: c.title,
+                        subtitle: c.author || `Class ${c.classLevel}`,
+                        category: "Literature",
+                        href: `/chapter/${c._id}`
+                    }));
+                setRelatedContent(others);
+            }
 
             // --- DYNAMIC TITLE UPDATE ---
             // Format: "Title [- Author] | Class X"
@@ -737,6 +753,11 @@ export default function ChapterDetail() {
                 onClose={() => setShowFlashcards(false)}
             />
         )}
+
+        <RelatedContent
+            title={`More Class ${chapter.classLevel} Chapters`}
+            items={relatedContent}
+         />
 
       </main>
 

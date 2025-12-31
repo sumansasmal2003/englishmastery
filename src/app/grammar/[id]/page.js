@@ -6,6 +6,7 @@ import {
   ArrowLeft, BookOpen, Loader2, PenTool, Lightbulb, Sparkles,
   BrainCircuit, CheckCircle2, XCircle, Trophy, Download, ImageIcon, Calendar, UserCircle2
 } from "lucide-react";
+import RelatedContent from "@/components/RelatedContent";
 
 // --- PROFESSIONAL IMAGE COMPONENT ---
 const ProfessionalImage = ({ src, alt, className, priority = false }) => {
@@ -38,6 +39,7 @@ export default function GrammarDetail() {
   const { id } = useParams();
   const router = useRouter();
   const [topic, setTopic] = useState(null);
+  const [relatedTopics, setRelatedTopics] = useState([]);
   const [loading, setLoading] = useState(true);
 
   // Download State
@@ -53,11 +55,29 @@ export default function GrammarDetail() {
     if (!id) return;
     async function fetchTopic() {
       try {
-        const res = await fetch(`/api/grammar/${id}`);
+        const [res, allRes] = await Promise.all([
+            fetch(`/api/grammar/${id}`),
+            fetch('/api/grammar')
+        ]);
         const data = await res.json();
+        const allData = await allRes.json();
         if (data.success) {
             setTopic(data.data);
             document.title = `${data.data.topic} | Grammar Reference`; // Dynamic Title
+            if (allData.success) {
+                // Get 3 random other topics
+                const others = allData.data
+                    .filter(t => t._id !== id)
+                    .sort(() => 0.5 - Math.random()) // Shuffle
+                    .slice(0, 3)
+                    .map(t => ({
+                        title: t.topic,
+                        subtitle: t.description,
+                        category: "Grammar Rule",
+                        href: `/grammar/${t._id}`
+                    }));
+                setRelatedTopics(others);
+            }
         }
       } catch (error) {
         console.error("Error:", error);
@@ -287,6 +307,11 @@ export default function GrammarDetail() {
                 <BookOpen size={16} className="group-hover:-translate-x-1 transition-transform" /> Return to Dashboard
              </button>
         </div>
+
+        <RelatedContent
+           title="Explore Other Rules"
+           items={relatedTopics}
+        />
 
       </main>
 
